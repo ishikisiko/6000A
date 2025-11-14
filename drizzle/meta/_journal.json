@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1763059276233,
+      "tag": "0000_real_carlie_cooper",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1763059379626,
+      "tag": "0001_tired_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1763059409495,
+      "tag": "0002_spotty_frank_castle",
+      "breakpoints": true
+    }
+  ]
+}

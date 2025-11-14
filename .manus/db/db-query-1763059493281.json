@@ -1,0 +1,9 @@
+{
+  "query": "DROP TABLE IF EXISTS __drizzle_migrations, auditLogs, processingTasks, dataRetention, consents, userPoints, topics, betVotes, combos, voiceTurns, ttdSamples, events, phases, matches, users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FZPmk2wy2WC1XC.root --database 5Xm74GqNt7jEJ9WYf42oNA --execute DROP TABLE IF EXISTS __drizzle_migrations, auditLogs, processingTasks, dataRetention, consents, userPoints, topics, betVotes, combos, voiceTurns, ttdSamples, events, phases, matches, users;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 5494
+}

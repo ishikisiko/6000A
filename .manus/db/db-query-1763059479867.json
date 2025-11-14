@@ -1,0 +1,49 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FZPmk2wy2WC1XC.root --database 5Xm74GqNt7jEJ9WYf42oNA --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "auditLogs"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "betVotes"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "combos"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "consents"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "dataRetention"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "events"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "matches"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "phases"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "processingTasks"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "topics"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "ttdSamples"
+    },
+    {
+      "Tables_in_5Xm74GqNt7jEJ9WYf42oNA": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_5Xm74GqNt7jEJ9WYf42oNA\n__drizzle_migrations\nauditLogs\nbetVotes\ncombos\nconsents\ndataRetention\nevents\nmatches\nphases\nprocessingTasks\ntopics\nttdSamples\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 1547
+}

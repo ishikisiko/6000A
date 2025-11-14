@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO userPoints (userId, points, createdAt, updatedAt)\nSELECT id, 1000, NOW(), NOW()\nFROM users\nWHERE id NOT IN (SELECT userId FROM userPoints);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FZPmk2wy2WC1XC.root --database 5Xm74GqNt7jEJ9WYf42oNA --execute INSERT INTO userPoints (userId, points, createdAt, updatedAt)\nSELECT id, 1000, NOW(), NOW()\nFROM users\nWHERE id NOT IN (SELECT userId FROM userPoints);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'createdAt' in 'field list'"
+  ]
+}
