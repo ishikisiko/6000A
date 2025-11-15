@@ -158,6 +158,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import {
@@ -175,6 +176,7 @@ import { AIChatBox, type Message } from "@/components/AIChatBox";
 
 export default function ComponentsShowcase() {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [datePickerDate, setDatePickerDate] = useState<Date>();
   const [selectedFruits, setSelectedFruits] = useState<string[]>([]);
@@ -231,7 +233,7 @@ export default function ComponentsShowcase() {
       <main className="container max-w-6xl mx-auto">
         <div className="space-y-2 justify-between flex">
           <h2 className="text-3xl font-bold tracking-tight mb-6">
-            Shadcn/ui Component Library
+            {t('showcase.title')}
           </h2>
           <Button variant="outline" size="icon" onClick={toggleTheme}>
             {theme === "light" ? (
@@ -245,75 +247,75 @@ export default function ComponentsShowcase() {
         <div className="space-y-12">
           {/* Text Colors Section */}
           <section className="space-y-4">
-            <h3 className="text-2xl font-semibold">Text Colors</h3>
+            <h3 className="text-2xl font-semibold">{t('showcase.textColors')}</h3>
             <Card>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Foreground (Default)
+                        {t('showcase.foreground')}
                       </p>
                       <p className="text-foreground text-lg">
-                        Default text color for main content
+                        {t('showcase.defaultText')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Muted Foreground
+                        {t('showcase.mutedForeground')}
                       </p>
                       <p className="text-muted-foreground text-lg">
-                        Muted text for secondary information
+                        {t('showcase.mutedText')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Primary
+                        {t('showcase.primary')}
                       </p>
                       <p className="text-primary text-lg font-medium">
-                        Primary brand color text
+                        {t('showcase.primaryText')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Secondary Foreground
+                        {t('showcase.secondaryForeground')}
                       </p>
                       <p className="text-secondary-foreground text-lg">
-                        Secondary action text color
+                        {t('showcase.secondaryText')}
                       </p>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Accent Foreground
+                        {t('showcase.accentForeground')}
                       </p>
                       <p className="text-accent-foreground text-lg">
-                        Accent text for emphasis
+                        {t('showcase.accentText')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Destructive
+                        {t('showcase.destructive')}
                       </p>
                       <p className="text-destructive text-lg font-medium">
-                        Error or destructive action text
+                        {t('showcase.destructiveText')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Card Foreground
+                        {t('showcase.cardForeground')}
                       </p>
                       <p className="text-card-foreground text-lg">
-                        Text color on card backgrounds
+                        {t('showcase.cardText')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Popover Foreground
+                        {t('showcase.popoverForeground')}
                       </p>
                       <p className="text-popover-foreground text-lg">
-                        Text color in popovers
+                        {t('showcase.popoverText')}
                       </p>
                     </div>
                   </div>
@@ -324,56 +326,56 @@ export default function ComponentsShowcase() {
 
           {/* Color Combinations Section */}
           <section className="space-y-4">
-            <h3 className="text-2xl font-semibold">Color Combinations</h3>
+            <h3 className="text-2xl font-semibold">{t('showcase.colorCombinations')}</h3>
             <Card>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-primary text-primary-foreground rounded-lg p-4">
-                    <p className="font-medium mb-1">Primary</p>
+                    <p className="font-medium mb-1">{t('showcase.primary')}</p>
                     <p className="text-sm opacity-90">
-                      Primary background with foreground text
+                      {t('showcase.primaryBg')}
                     </p>
                   </div>
                   <div className="bg-secondary text-secondary-foreground rounded-lg p-4">
                     <p className="font-medium mb-1">Secondary</p>
                     <p className="text-sm opacity-90">
-                      Secondary background with foreground text
+                      {t('showcase.secondaryBg')}
                     </p>
                   </div>
                   <div className="bg-muted text-muted-foreground rounded-lg p-4">
                     <p className="font-medium mb-1">Muted</p>
                     <p className="text-sm opacity-90">
-                      Muted background with foreground text
+                      {t('showcase.mutedBg')}
                     </p>
                   </div>
                   <div className="bg-accent text-accent-foreground rounded-lg p-4">
                     <p className="font-medium mb-1">Accent</p>
                     <p className="text-sm opacity-90">
-                      Accent background with foreground text
+                      {t('showcase.accentBg')}
                     </p>
                   </div>
                   <div className="bg-destructive text-destructive-foreground rounded-lg p-4">
-                    <p className="font-medium mb-1">Destructive</p>
+                    <p className="font-medium mb-1">{t('showcase.destructive')}</p>
                     <p className="text-sm opacity-90">
-                      Destructive background with foreground text
+                      {t('showcase.destructiveBg')}
                     </p>
                   </div>
                   <div className="bg-card text-card-foreground rounded-lg p-4 border">
                     <p className="font-medium mb-1">Card</p>
                     <p className="text-sm opacity-90">
-                      Card background with foreground text
+                      {t('showcase.cardBg')}
                     </p>
                   </div>
                   <div className="bg-popover text-popover-foreground rounded-lg p-4 border">
                     <p className="font-medium mb-1">Popover</p>
                     <p className="text-sm opacity-90">
-                      Popover background with foreground text
+                      {t('showcase.popoverBg')}
                     </p>
                   </div>
                   <div className="bg-background text-foreground rounded-lg p-4 border">
                     <p className="font-medium mb-1">Background</p>
                     <p className="text-sm opacity-90">
-                      Default background with foreground text
+                      {t('showcase.backgroundBg')}
                     </p>
                   </div>
                 </div>
@@ -1429,7 +1431,7 @@ export default function ComponentsShowcase() {
 
       <footer className="border-t py-6 mt-12">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>Shadcn/ui Component Showcase</p>
+          <p>{t('showcase.title')}</p>
         </div>
       </footer>
     </div>

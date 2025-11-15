@@ -47,6 +47,8 @@ async function startServer() {
     serveStatic(app);
   }
 
+  // 从环境变量读取端口配置，默认为 3000
+  // 在 .env 文件中设置 PORT=端口号 来修改端口
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
 

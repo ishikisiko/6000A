@@ -10,13 +10,14 @@ import { toast } from "sonner";
 
 export default function Matches() {
   const { user } = useLocalAuth();
+  const { t } = useLanguage();
   const [matches, setMatches] = useState(miniDB.getMatches());
 
   const handleDelete = (matchId: number) => {
-    if (confirm("确定要删除这场比赛吗?")) {
+    if (confirm(t('matches.deleteConfirm'))) {
       miniDB.deleteMatch(matchId);
       setMatches(miniDB.getMatches());
-      toast.success("比赛已删除");
+      toast.success(t('matches.deleted'));
     }
   };
 
@@ -25,9 +26,9 @@ export default function Matches() {
       <div className="min-h-screen flex items-center justify-center">
         <Card className="p-8">
           <div className="text-center space-y-4">
-            <h3 className="text-xl font-semibold">请先登录</h3>
+            <h3 className="text-xl font-semibold">{t('auth.pleaseLogin')}</h3>
             <Button asChild>
-              <Link href="/">返回登录</Link>
+              <Link href="/">{t('auth.returnLogin')}</Link>
             </Button>
           </div>
         </Card>
@@ -46,14 +47,14 @@ export default function Matches() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">比赛记录</h1>
-              <p className="text-muted-foreground mt-1">查看和分析您的历史比赛</p>
+              <h1 className="text-3xl font-bold">{t('matches.title')}</h1>
+              <p className="text-muted-foreground mt-1">{t('matches.description')}</p>
             </div>
           </div>
           <Button asChild>
             <Link href="/match-upload">
               <Upload className="mr-2 h-4 w-4" />
-              上传Demo
+              {t('matches.uploadDemo')}
             </Link>
           </Button>
         </div>
@@ -63,15 +64,15 @@ export default function Matches() {
             <div className="text-center space-y-4">
               <Trophy className="h-16 w-16 mx-auto text-muted-foreground" />
               <div>
-                <h3 className="text-xl font-semibold">还没有比赛记录</h3>
+                <h3 className="text-xl font-semibold">{t('matches.noMatches')}</h3>
                 <p className="text-muted-foreground mt-2">
-                  上传CS demo文件开始分析您的比赛表现
+                  {t('matches.uploadToStart')}
                 </p>
               </div>
               <Button asChild>
                 <Link href="/match-upload">
                   <Upload className="mr-2 h-4 w-4" />
-                  上传第一场比赛
+                  {t('matches.uploadFirst')}
                 </Link>
               </Button>
             </div>
@@ -120,15 +121,15 @@ export default function Matches() {
 
                     {match.scoreA > match.scoreB ? (
                       <Badge variant="default" className="w-full justify-center">
-                        {match.teamAName} 获胜
+                        {match.teamAName} {t('matches.winner')}
                       </Badge>
                     ) : match.scoreB > match.scoreA ? (
                       <Badge variant="secondary" className="w-full justify-center">
-                        {match.teamBName} 获胜
+                        {match.teamBName} {t('matches.winner')}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="w-full justify-center">
-                        平局
+                        {t('matches.draw')}
                       </Badge>
                     )}
 
@@ -138,13 +139,13 @@ export default function Matches() {
                     </div>
 
                     <div className="text-xs text-muted-foreground">
-                      上传者: {uploader?.name || '未知'}
+                      {t('matches.uploader')}: {uploader?.name || 'Unknown'}
                     </div>
 
                     <div className="flex gap-2 mt-4">
                       <Button size="sm" className="flex-1" variant="outline" disabled>
                         <BarChart3 className="mr-2 h-4 w-4" />
-                        查看分析
+                        {t('matches.viewAnalysis')}
                       </Button>
                     </div>
                   </CardContent>

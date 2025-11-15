@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, LogOut, User, Award, TrendingUp, Calendar } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Profile() {
+  const { t } = useLanguage();
   const { user, loading, logout } = useLocalAuth();
   const [, setLocation] = useLocation();
 
@@ -45,12 +47,12 @@ export default function Profile() {
           <Link href="/dashboard">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              返回Dashboard
+              {t('common.back')} {t('nav.dashboard')}
             </Button>
           </Link>
           <Button variant="destructive" size="sm" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
-            退出登录
+            {t('auth.logout')}
           </Button>
         </div>
 
@@ -64,23 +66,23 @@ export default function Profile() {
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-2xl">{user.name}</CardTitle>
-                  <CardDescription>用户ID: #{user.id}</CardDescription>
+                  <CardDescription>{t('profile.username')} ID: #{user.id}</CardDescription>
                 </div>
                 <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                  {user.role === 'admin' ? '管理员' : '普通用户'}
+                  {user.role === 'admin' ? t('profile.roleAdmin') : t('profile.roleUser')}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-secondary rounded-lg">
-                  <p className="text-sm text-muted-foreground">注册时间</p>
+                  <p className="text-sm text-muted-foreground">{t('profile.joinDate')}</p>
                   <p className="font-semibold mt-1">
-                    {new Date(user.createdAt).toLocaleDateString('zh-CN')}
+                    {new Date(user.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="p-4 bg-secondary rounded-lg">
-                  <p className="text-sm text-muted-foreground">用户类型</p>
+                  <p className="text-sm text-muted-foreground">{t('auth.username')}</p>
                   <p className="font-semibold mt-1">本地用户</p>
                 </div>
               </div>
@@ -92,16 +94,16 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-primary" />
-                积分统计
+                {t('profile.pointsSummary')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-6 bg-gradient-to-br from-primary/20 to-cyan-500/20 rounded-lg text-center">
-                <p className="text-sm text-muted-foreground mb-2">当前积分</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('profile.currentPoints')}</p>
                 <p className="text-4xl font-bold text-primary">{user.points}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">参与话题</p>
+                <p className="text-sm text-muted-foreground">{t('topics.title')}</p>
                 <p className="text-2xl font-semibold">{myVotes.length}</p>
               </div>
             </CardContent>
@@ -113,16 +115,16 @@ export default function Profile() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              最近活动
+              {t('profile.pointsHistory')}
             </CardTitle>
-            <CardDescription>您最近参与的投票和下注记录</CardDescription>
+            <CardDescription>{t('topics.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {recentVotes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <p>暂无活动记录</p>
+                <p>{t('profile.noTransactions')}</p>
                 <Button className="mt-4" asChild>
-                  <Link href="/topics">去参与话题</Link>
+                  <Link href="/topics">{t('dashboard.joinVoting')}</Link>
                 </Button>
               </div>
             ) : (
@@ -130,7 +132,7 @@ export default function Profile() {
                 {recentVotes.map((vote) => {
                   const topic = miniDB.getTopicById(vote.topicId);
                   if (!topic) return null;
-                  
+
                   return (
                     <div
                       key={vote.id}
@@ -139,13 +141,13 @@ export default function Profile() {
                       <div className="flex-1">
                         <p className="font-medium">{topic.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          选择: {topic.options[vote.choice]}
-                          {vote.amount > 0 && ` · 下注: ${vote.amount}积分`}
+                          {t('topic.options')}: {topic.options[vote.choice]}
+                          {vote.amount > 0 && ` · ${t('topic.betAmount')}: ${vote.amount}${t('topic.points')}`}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        {new Date(vote.createdAt).toLocaleDateString('zh-CN')}
+                        {new Date(vote.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   );

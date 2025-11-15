@@ -32,6 +32,9 @@ const translations = {
     'auth.localStorageNote': '本系统使用本地存储,数据仅保存在浏览器中',
     'auth.pleaseLogin': '请先登录',
     'auth.returnLogin': '返回登录',
+    'auth.quickLoginAdmin': '管理员',
+    'auth.quickLoginPlayerA': '玩家A',
+    'auth.quickLoginPlayerB': '玩家B',
     
     // Navigation
     'nav.dashboard': '控制台',
@@ -126,7 +129,8 @@ const translations = {
     'topics.viewDetail': '查看详情',
     'topics.deleteConfirm': '确定要删除这个话题吗?',
     'topics.deleted': '话题已删除',
-    
+    'topics.waitForAdmin': '等待管理员创建话题',
+
     // Topic Detail
     'topic.backToList': '返回话题列表',
     'topic.status': '状态',
@@ -229,6 +233,50 @@ const translations = {
     // App Title
     'app.title': 'FPS 团队赛后教练 AI Agent',
     'app.subtitle': '数据驱动的FPS团队赛后分析平台',
+    'app.tagline': '让复盘从"感觉驱动"变为"数据驱动 + 有趣互动"',
+    'app.enterSystem': '进入系统',
+    'app.startJourney': '点击按钮开始您的数据分析之旅',
+
+    // Pages
+    'pages.analysis': '分析页面',
+    'pages.settings': '设置页面',
+    'pages.matchDetail': '比赛详情页面',
+    'pages.componentShowcase': '组件展示',
+    'pages.notFound': '页面未找到',
+
+    // Component Showcase
+    'showcase.title': 'Shadcn/ui 组件库',
+    'showcase.textColors': '文本颜色',
+    'showcase.foreground': '前景（默认）',
+    'showcase.defaultText': '主要内容默认文本颜色',
+    'showcase.mutedForeground': '弱化前景',
+    'showcase.mutedText': '次要信息的弱化文本',
+    'showcase.primary': '主要',
+    'showcase.primaryText': '主要品牌颜色文本',
+    'showcase.secondaryForeground': '次要前景',
+    'showcase.secondaryText': '次要操作文本颜色',
+    'showcase.accentForeground': '强调前景',
+    'showcase.accentText': '用于强调的强调文本',
+    'showcase.destructive': '破坏性',
+    'showcase.destructiveText': '错误或破坏性操作文本',
+    'showcase.cardForeground': '卡片前景',
+    'showcase.cardText': '卡片背景上的文本颜色',
+    'showcase.popoverForeground': '弹出前景',
+    'showcase.popoverText': '弹出层中的文本颜色',
+    'showcase.colorCombinations': '颜色组合',
+    'showcase.primaryBg': '主要背景与前景文本',
+    'showcase.secondaryBg': '次要背景与前景文本',
+    'showcase.mutedBg': '弱化背景与前景文本',
+    'showcase.accentBg': '强调背景与强调文本',
+    'showcase.destructiveBg': '破坏性背景与前景文本',
+    'showcase.cardBg': '卡片背景与前景文本',
+    'showcase.popoverBg': '弹出背景与前景文本',
+    'showcase.backgroundBg': '默认背景与前景文本',
+
+    // Not Found
+    'notFound.title': '页面未找到',
+    'notFound.description': '您访问的页面不存在',
+    'notFound.backHome': '返回首页',
   },
   en: {
     // Common
@@ -253,6 +301,9 @@ const translations = {
     'auth.localStorageNote': 'This system uses local storage, data is saved in browser only',
     'auth.pleaseLogin': 'Please login first',
     'auth.returnLogin': 'Return to Login',
+    'auth.quickLoginAdmin': 'Admin',
+    'auth.quickLoginPlayerA': 'Player A',
+    'auth.quickLoginPlayerB': 'Player B',
     
     // Navigation
     'nav.dashboard': 'Dashboard',
@@ -347,7 +398,8 @@ const translations = {
     'topics.viewDetail': 'View Details',
     'topics.deleteConfirm': 'Are you sure you want to delete this topic?',
     'topics.deleted': 'Topic deleted',
-    
+    'topics.waitForAdmin': 'Waiting for admin to create topics',
+
     // Topic Detail
     'topic.backToList': 'Back to Topics',
     'topic.status': 'Status',
@@ -450,6 +502,50 @@ const translations = {
     // App Title
     'app.title': 'FPS Team Post-Match Coach AI Agent',
     'app.subtitle': 'Data-Driven FPS Team Post-Match Analysis Platform',
+    'app.tagline': 'Transform post-match review from "feeling-driven" to "data-driven + interactive"',
+    'app.enterSystem': 'Enter System',
+    'app.startJourney': 'Click to start your data analysis journey',
+
+    // Pages
+    'pages.analysis': 'Analysis',
+    'pages.settings': 'Settings',
+    'pages.matchDetail': 'Match Detail',
+    'pages.componentShowcase': 'Component Showcase',
+    'pages.notFound': 'Not Found',
+
+    // Component Showcase
+    'showcase.title': 'Shadcn/ui Component Library',
+    'showcase.textColors': 'Text Colors',
+    'showcase.foreground': 'Foreground (Default)',
+    'showcase.defaultText': 'Default text color for main content',
+    'showcase.mutedForeground': 'Muted Foreground',
+    'showcase.mutedText': 'Muted text for secondary information',
+    'showcase.primary': 'Primary',
+    'showcase.primaryText': 'Primary brand color text',
+    'showcase.secondaryForeground': 'Secondary Foreground',
+    'showcase.secondaryText': 'Secondary action text color',
+    'showcase.accentForeground': 'Accent Foreground',
+    'showcase.accentText': 'Accent text for emphasis',
+    'showcase.destructive': 'Destructive',
+    'showcase.destructiveText': 'Error or destructive action text',
+    'showcase.cardForeground': 'Card Foreground',
+    'showcase.cardText': 'Text color on card backgrounds',
+    'showcase.popoverForeground': 'Popover Foreground',
+    'showcase.popoverText': 'Text color in popovers',
+    'showcase.colorCombinations': 'Color Combinations',
+    'showcase.primaryBg': 'Primary background with foreground text',
+    'showcase.secondaryBg': 'Secondary background with foreground text',
+    'showcase.mutedBg': 'Muted background with foreground text',
+    'showcase.accentBg': 'Accent background with foreground text',
+    'showcase.destructiveBg': 'Destructive background with foreground text',
+    'showcase.cardBg': 'Card background with foreground text',
+    'showcase.popoverBg': 'Popover background with foreground text',
+    'showcase.backgroundBg': 'Default background with foreground text',
+
+    // Not Found
+    'notFound.title': 'Page Not Found',
+    'notFound.description': 'The page you are looking for does not exist',
+    'notFound.backHome': 'Back to Home',
   },
 };
 

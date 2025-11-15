@@ -1,4 +1,7 @@
 # Dependencies
+CLAUDE.md
+terminal-security.json
+terminal-tool.json
 **/node_modules
 .pnpm-store/
 
@@ -105,3 +108,85 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+
+# Vite specific
+.vite/
+
+# React/TypeScript
+.eslintcache
+.stylelintcache
+
+# Discord bot
+discord-token.*
+bot-token.*
+config/secret.*
+
+# AI/ML models and data
+*.pkl
+*.model
+*.h5
+*.pb
+models/
+data/raw/
+data/processed/
+
+# Video/Audio processing
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.m4a
+uploads/
+temp_files/
+
+# CS:GO Demo files (keep only in uploads)
+*.dem
+!client/public/demos/
+
+# AWS/Cloud credentials
+.aws/
+.aws-credentials
+.terraform/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Testing
+test-results/
+playwright-report/
+test-results.xml
+
+# IDE specific (more additions)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/shelf
+.idea/contentModel.xml
+.idea/dataSources.ids
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml
+.idea/grazie.xml
+.idea/git.xml
+
+# MacOS
+.AppleDouble
+.LSOverride
+
+# Windows
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~

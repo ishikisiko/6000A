@@ -18,18 +18,20 @@ import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { miniDB } from "@/lib/miniDB";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Topics() {
+  const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const { user } = useLocalAuth();
   const [refreshKey, setRefreshKey] = useState(0);
-  
+
   const topics = miniDB.getTopics();
   const myPoints = user?.points || 0;
 
   const handleDelete = (topicId: number) => {
     miniDB.deleteTopic(topicId);
-    toast.success('话题已删除');
+    toast.success(t('topics.deleted'));
     setRefreshKey(prev => prev + 1); // 触发重新渲染
   };
 
@@ -67,15 +69,15 @@ export default function Topics() {
             </AlertDialogTrigger>
             <AlertDialogContent onClick={(e) => e.stopPropagation()}>
               <AlertDialogHeader>
-                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  确定要删除话题"{topic.title}"吗?此操作无法撤销。
+                  {t('topics.deleteConfirm')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={() => handleDelete(topic.id)}>
-                  删除
+                  {t('common.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -90,7 +92,7 @@ export default function Topics() {
           </div>
           <div className="flex gap-2 mt-3">
             <Badge variant={topic.type === 'bet' ? 'default' : 'secondary'}>
-              {topic.type === 'bet' ? '下注' : '投票'}
+              {topic.type === 'bet' ? t('topics.bet') : t('topics.vote')}
             </Badge>
             {userVote && (
               <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
@@ -104,12 +106,12 @@ export default function Topics() {
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                {stats.totalVotes} 人参与
+                {stats.totalVotes} {t('topics.participants')}
               </span>
               {topic.type === 'bet' && (
                 <span className="flex items-center gap-1">
                   <Trophy className="h-4 w-4" />
-                  {stats.totalAmount} 积分
+                  {stats.totalAmount} {t('topic.points')}
                 </span>
               )}
             </div>
@@ -134,8 +136,8 @@ export default function Topics() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">投票与下注</h1>
-              <p className="text-muted-foreground mt-1">参与社区互动,赢取积分奖励</p>
+              <h1 className="text-3xl font-bold">{t('topics.title')}</h1>
+              <p className="text-muted-foreground mt-1">{t('topics.description')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -143,7 +145,7 @@ export default function Topics() {
               <Button asChild>
                 <Link href="/create-topic">
                   <Plus className="mr-2 h-4 w-4" />
-                  创建话题
+                  {t('topics.createTopic')}
                 </Link>
               </Button>
             )}
@@ -151,7 +153,7 @@ export default function Topics() {
               <CardContent className="p-4 flex items-center gap-3">
               <Trophy className="h-8 w-8 text-yellow-500" />
               <div>
-                <p className="text-sm text-muted-foreground">我的积分</p>
+                <p className="text-sm text-muted-foreground">{t('topics.myPoints')}</p>
                 <p className="text-2xl font-bold">{myPoints}</p>
               </div>
               </CardContent>
@@ -164,7 +166,7 @@ export default function Topics() {
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
               <TrendingUp className="h-6 w-6 text-green-500" />
-              活跃话题
+              {t('topics.active')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeTopics.map(renderTopicCard)}
@@ -177,7 +179,7 @@ export default function Topics() {
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
               <Clock className="h-6 w-6 text-yellow-500" />
-              等待揭晓
+              {t('topics.closed')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {closedTopics.map(renderTopicCard)}
@@ -190,7 +192,7 @@ export default function Topics() {
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
               <Trophy className="h-6 w-6 text-purple-500" />
-              已揭晓
+              {t('topics.revealed')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {revealedTopics.map(renderTopicCard)}
@@ -201,11 +203,11 @@ export default function Topics() {
         {topics.length === 0 && (
           <Card className="p-12 text-center">
             <Vote className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">暂无话题</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('topics.noTopics')}</h3>
             <p className="text-muted-foreground mb-4">
-              {user?.role === 'admin' 
-                ? '点击上方"创建话题"按钮开始创建第一个话题' 
-                : '等待管理员创建话题'}
+              {user?.role === 'admin'
+                ? t('topics.createFirst')
+                : t('topics.waitForAdmin')}
             </p>
           </Card>
         )}

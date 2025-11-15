@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import ParticleBackground from '@/components/ParticleBackground';
 import { APP_LOGO, APP_TITLE } from '@/const';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Zap } from 'lucide-react';
 
 interface WelcomeProps {
@@ -10,6 +11,7 @@ interface WelcomeProps {
 
 export default function Welcome({ onEnter }: WelcomeProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -41,12 +43,12 @@ export default function Welcome({ onEnter }: WelcomeProps) {
           
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto px-4">
-            数据驱动的FPS团队赛后分析平台
+            {t('app.subtitle')}
           </p>
-          
+
           {/* Tagline */}
           <p className="text-lg text-gray-500 italic">
-            让复盘从"感觉驱动"变为"数据驱动 + 有趣互动"
+            {t('app.tagline')}
           </p>
           
           {/* Enter button */}
@@ -58,7 +60,7 @@ export default function Welcome({ onEnter }: WelcomeProps) {
             >
               <span className="relative z-10 flex items-center gap-2">
                 <Zap className="h-6 w-6 group-hover:animate-pulse" />
-                进入系统
+                {t('app.enterSystem')}
                 <Zap className="h-6 w-6 group-hover:animate-pulse" />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -67,7 +69,7 @@ export default function Welcome({ onEnter }: WelcomeProps) {
           
           {/* Hint text */}
           <p className="text-sm text-gray-600 animate-pulse pt-4">
-            点击按钮开始您的数据分析之旅
+            {t('app.startJourney')}
           </p>
         </div>
         

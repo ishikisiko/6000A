@@ -88,26 +88,26 @@ export default function Login() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => quickLogin("管理员")}
+              onClick={() => quickLogin(t('auth.quickLoginAdmin'))}
               className="text-xs"
             >
-              管理员
+              {t('auth.quickLoginAdmin')}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => quickLogin("玩家A")}
+              onClick={() => quickLogin(t('auth.quickLoginPlayerA'))}
               className="text-xs"
             >
-              玩家A
+              {t('auth.quickLoginPlayerA')}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => quickLogin("玩家B")}
+              onClick={() => quickLogin(t('auth.quickLoginPlayerB'))}
               className="text-xs"
             >
-              玩家B
+              {t('auth.quickLoginPlayerB')}
             </Button>
           </div>
 
