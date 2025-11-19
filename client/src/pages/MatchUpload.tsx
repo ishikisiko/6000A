@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { miniDB } from "@/lib/miniDB";
 import { ArrowLeft, Upload, FileUp, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 export default function MatchUpload() {
   const [, setLocation] = useLocation();
   const { user } = useLocalAuth();
+  const { t } = useLanguage();
   
   const [file, setFile] = useState<File | null>(null);
   const [mapName, setMapName] = useState("");
@@ -25,11 +27,11 @@ export default function MatchUpload() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.name.endsWith('.dem')) {
+      if (selectedFile.name.endsWith(".dem")) {
         setFile(selectedFile);
-        toast.success("文件已选择", { description: selectedFile.name });
+        toast.success(t("upload.fileSelected"), { description: selectedFile.name });
       } else {
-        toast.error("请选择.dem格式的CS demo文件");
+        toast.error(t("upload.selectDemFile"));
       }
     }
   };
@@ -37,11 +39,11 @@ export default function MatchUpload() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.name.endsWith('.dem')) {
+    if (droppedFile && droppedFile.name.endsWith(".dem")) {
       setFile(droppedFile);
-      toast.success("文件已选择", { description: droppedFile.name });
+      toast.success(t("upload.fileSelected"), { description: droppedFile.name });
     } else {
-      toast.error("请选择.dem格式的CS demo文件");
+      toast.error(t("upload.selectDemFile"));
     }
   };
 
@@ -53,17 +55,17 @@ export default function MatchUpload() {
     e.preventDefault();
 
     if (!user) {
-      toast.error("请先登录");
+      toast.error(t("auth.pleaseLogin"));
       return;
     }
 
     if (!file) {
-      toast.error("请选择demo文件");
+      toast.error(t("upload.pleaseSelectFile"));
       return;
     }
 
     if (!mapName || !teamAName || !teamBName) {
-      toast.error("请填写完整的比赛信息");
+      toast.error(t("upload.fillComplete"));
       return;
     }
 
@@ -107,14 +109,14 @@ export default function MatchUpload() {
         });
       }
 
-      toast.success("上传成功!", { 
-        description: `比赛 ${teamAName} vs ${teamBName} 已保存` 
+      toast.success(t("upload.success"), {
+        description: `${t("upload.matchSaved")}: ${teamAName} vs ${teamBName}`,
       });
       
       setTimeout(() => setLocation("/matches"), 1000);
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("上传失败", { description: "请检查文件格式" });
+      toast.error(t("upload.failed"), { description: t("upload.checkFormat") });
     } finally {
       setUploading(false);
     }
@@ -125,9 +127,9 @@ export default function MatchUpload() {
       <div className="min-h-screen flex items-center justify-center">
         <Card className="p-8">
           <div className="text-center space-y-4">
-            <h3 className="text-xl font-semibold">请先登录</h3>
+            <h3 className="text-xl font-semibold">{t("auth.pleaseLogin")}</h3>
             <Button asChild>
-              <Link href="/">返回登录</Link>
+              <Link href="/">{t("auth.returnLogin")}</Link>
             </Button>
           </div>
         </Card>
@@ -145,8 +147,8 @@ export default function MatchUpload() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">上传比赛Demo</h1>
-            <p className="text-muted-foreground mt-1">上传CS官方demo文件进行赛后分析</p>
+            <h1 className="text-3xl font-bold">{t("upload.title")}</h1>
+            <p className="text-muted-foreground mt-1">{t("upload.description")}</p>
           </div>
         </div>
 
@@ -154,8 +156,8 @@ export default function MatchUpload() {
           {/* File Upload */}
           <Card>
             <CardHeader>
-              <CardTitle>选择Demo文件</CardTitle>
-              <CardDescription>支持CS:GO和CS2的.dem格式文件</CardDescription>
+              <CardTitle>{t("upload.selectFile")}</CardTitle>
+              <CardDescription>{t("upload.supportedFormats")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div
@@ -182,16 +184,16 @@ export default function MatchUpload() {
                         setFile(null);
                       }}
                     >
-                      重新选择
+                      {t("upload.reselect")}
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <FileUp className="h-16 w-16 mx-auto text-muted-foreground" />
                     <div>
-                      <p className="font-semibold">点击或拖拽文件到此处</p>
+                      <p className="font-semibold">{t("upload.clickOrDrag")}</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        支持.dem格式,最大100MB
+                        {t("upload.maxSize")}
                       </p>
                     </div>
                   </div>
@@ -210,15 +212,17 @@ export default function MatchUpload() {
           {/* Match Info */}
           <Card>
             <CardHeader>
-              <CardTitle>比赛信息</CardTitle>
-              <CardDescription>填写比赛的基本信息</CardDescription>
+              <CardTitle>{t("upload.matchInfo")}</CardTitle>
+              <CardDescription>{t("upload.fillBasicInfo")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="mapName">地图名称 *</Label>
+                <Label htmlFor="mapName">
+                  {t("upload.mapName")} *
+                </Label>
                 <Input
                   id="mapName"
-                  placeholder="例如: de_dust2, de_mirage"
+                  placeholder={t("upload.mapPlaceholder")}
                   value={mapName}
                   onChange={(e) => setMapName(e.target.value)}
                   required
@@ -227,17 +231,21 @@ export default function MatchUpload() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="teamA">队伍A名称 *</Label>
+                  <Label htmlFor="teamA">
+                    {t("upload.teamAName")} *
+                  </Label>
                   <Input
                     id="teamA"
-                    placeholder="队伍A"
+                    placeholder={t("upload.teamAPlaceholder")}
                     value={teamAName}
                     onChange={(e) => setTeamAName(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="scoreA">队伍A得分 *</Label>
+                  <Label htmlFor="scoreA">
+                    {t("upload.teamAScore")} *
+                  </Label>
                   <Input
                     id="scoreA"
                     type="number"
@@ -252,17 +260,21 @@ export default function MatchUpload() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="teamB">队伍B名称 *</Label>
+                  <Label htmlFor="teamB">
+                    {t("upload.teamBName")} *
+                  </Label>
                   <Input
                     id="teamB"
-                    placeholder="队伍B"
+                    placeholder={t("upload.teamBPlaceholder")}
                     value={teamBName}
                     onChange={(e) => setTeamBName(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="scoreB">队伍B得分 *</Label>
+                  <Label htmlFor="scoreB">
+                    {t("upload.teamBScore")} *
+                  </Label>
                   <Input
                     id="scoreB"
                     type="number"
@@ -281,10 +293,10 @@ export default function MatchUpload() {
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={uploading || !file}>
               <Upload className="mr-2 h-4 w-4" />
-              {uploading ? "上传中..." : "上传并分析"}
+              {uploading ? t("upload.uploading") : t("upload.uploadAndAnalyze")}
             </Button>
             <Button type="button" variant="outline" asChild>
-              <Link href="/dashboard">取消</Link>
+              <Link href="/dashboard">{t("common.cancel")}</Link>
             </Button>
           </div>
         </form>
