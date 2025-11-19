@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Activity, BarChart3, MessageSquare, Trophy, Users, Bot, User as UserIcon, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface DashboardProps {
   userName?: string;
@@ -14,16 +15,19 @@ export default function Dashboard({ userName }: DashboardProps) {
   return (
     <div className="min-h-screen bg-transparent">
       <div className="container py-10">
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-10">
           <div>
             <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
               {t('dashboard.welcome')}, {userName || t('dashboard.coach')}
             </h1>
             <p className="text-muted-foreground mt-2 text-lg">{t('dashboard.readyForNextMatch')}</p>
           </div>
-          <Button variant="outline" asChild className="glass hover:bg-white/10">
-            <Link href="/settings">{t('nav.settings')}</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <Button variant="outline" asChild className="glass hover:bg-white/10">
+              <Link href="/settings">{t('nav.settings')}</Link>
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
