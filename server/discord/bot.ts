@@ -1,12 +1,22 @@
 import { Client, GatewayIntentBits, Events, Message, VoiceState, TextBasedChannel } from 'discord.js';
-import { 
-  joinVoiceChannel, 
+import {
+  joinVoiceChannel,
   entersState,
   VoiceConnectionStatus,
   getVoiceConnection
 } from '@discordjs/voice';
 import { invokeLLM } from '../_core/llm';
-import { getActiveTopics } from '../db';
+import {
+  getActiveTopics,
+  getUserByOpenId,
+  upsertUser,
+  createBetVote,
+  getTopicByTopicId,
+  settleTopicResults,
+  updateTopicStatus
+} from '../db';
+import { topicGenerator } from './topic-generator';
+import { User } from 'discord.js';
 
 let discordClient: Client | null = null;
 
@@ -18,6 +28,19 @@ async function sendEmbed(channel: TextBasedChannel, embed: any) {
   if ('send' in channel && typeof channel.send === 'function') {
     await channel.send({ embeds: [embed] });
   }
+}
+
+async function getOrCreateUser(discordUser: User) {
+  let user = await getUserByOpenId(discordUser.id);
+  if (!user) {
+    await upsertUser({
+      openId: discordUser.id,
+      name: discordUser.username,
+      loginMethod: 'discord',
+    });
+    user = await getUserByOpenId(discordUser.id);
+  }
+  return user;
 }
 
 export async function initializeDiscordBot(token: string): Promise<Client> {
@@ -62,7 +85,7 @@ export async function initializeDiscordBot(token: string): Promise<Client> {
               },
               {
                 name: '🎲 互动功能',
-                value: '`!topics` - 查看活跃投票话题',
+                value: '`!topics` - 查看活跃投票话题\n`!vote <ID> <选项>` - 参与投票\n`!gen_topic <类型>` - (测试)生成话题',
               },
               {
                 name: '🤖 AI助手',
@@ -102,7 +125,7 @@ export async function initializeDiscordBot(token: string): Promise<Client> {
 
       if (content === '!topics' || content === '!话题') {
         const topics = await getActiveTopics();
-        
+
         if (topics.length === 0) {
           await message.reply('📋 当前没有活跃的投票话题');
           return;
@@ -121,6 +144,113 @@ export async function initializeDiscordBot(token: string): Promise<Client> {
             footer: { text: '使用 !vote <topicId> <choice> 参与投票' },
           }],
         });
+        return;
+      }
+
+      if (content.startsWith('!gen_topic')) {
+        const args = content.split(' ');
+        const type = args[1];
+        const user = await getOrCreateUser(message.author);
+
+        if (!user) {
+          await message.reply('❌ 无法获取用户信息');
+          return;
+        }
+
+        await message.reply('🎲 正在生成话题...');
+
+        try {
+          switch (type) {
+            case 'match':
+              await topicGenerator.generateMatchTopics(1, user.id); // Mock matchId 1
+              break;
+            case 'player':
+              await topicGenerator.generatePlayerPerformanceTopics(user.id);
+              break;
+            case 'tactical':
+              await topicGenerator.generateTacticalTopics(1, user.id);
+              break;
+            case 'community':
+              await topicGenerator.generateCommunityTopics(user.id);
+              break;
+            case 'fun':
+              await topicGenerator.generateFunTopics(user.id);
+              break;
+            case 'llm':
+              const context = args.slice(2).join(' ') || '最近一场比赛非常激烈，最终16:14险胜';
+              await topicGenerator.generateLLMTopics(context, user.id);
+              break;
+            default:
+              await message.reply('❌ 未知类型。可用类型: match, player, tactical, community, fun, llm');
+              return;
+          }
+          await message.reply('✅ 话题生成成功! 使用 `!topics` 查看。');
+        } catch (e) {
+          console.error(e);
+          await message.reply('❌ 生成失败');
+        }
+        return;
+      }
+
+      if (content.startsWith('!vote')) {
+        const args = content.split(' ');
+        if (args.length < 3) {
+          await message.reply('❌ 格式错误。使用: `!vote <topicId> <choice>`');
+          return;
+        }
+        const topicId = args[1];
+        const choice = args.slice(2).join(' '); // Allow spaces in choice? Maybe not for simple parsing
+
+        const user = await getOrCreateUser(message.author);
+        if (!user) return;
+
+        const topic = await getTopicByTopicId(topicId);
+        if (!topic) {
+          await message.reply('❌ 找不到该话题');
+          return;
+        }
+
+        if (topic.status !== 'active') {
+          await message.reply('❌ 该话题已结束');
+          return;
+        }
+
+        if (!topic.options.includes(choice)) {
+          await message.reply(`❌ 选项无效。可用选项: ${topic.options.join(', ')}`);
+          return;
+        }
+
+        await createBetVote({
+          topicId,
+          topicType: topic.topicType,
+          title: topic.title,
+          options: topic.options,
+          voterAnonId: message.author.id, // Using discord ID as anon ID for now
+          choice,
+          metadata: { userId: user.id, points: 100 } // Default bet 100 points
+        });
+
+        await message.reply(`✅ 投票成功! 你选择了: ${choice}`);
+        return;
+      }
+
+      if (content.startsWith('!reveal')) {
+        // Admin only check could be added here
+        const args = content.split(' ');
+        if (args.length < 3) {
+          await message.reply('❌ 格式错误。使用: `!reveal <topicId> <correctChoice>`');
+          return;
+        }
+        const topicId = args[1];
+        const correctChoice = args.slice(2).join(' ');
+
+        try {
+          await settleTopicResults(topicId, correctChoice);
+          await message.reply(`✅ 话题已揭晓! 正确答案: ${correctChoice}`);
+        } catch (e) {
+          console.error(e);
+          await message.reply('❌ 揭晓失败');
+        }
         return;
       }
 
@@ -161,7 +291,7 @@ export async function initializeDiscordBot(token: string): Promise<Client> {
 
       if (content.startsWith('!ask ') || content.startsWith('!问 ')) {
         const question = message.content.slice(content.startsWith('!ask ') ? 5 : 3).trim();
-        
+
         if (!question) {
           await message.reply('❌ 请提供一个问题,例如: `!ask 如何提升TTD?`');
           return;
@@ -184,7 +314,7 @@ export async function initializeDiscordBot(token: string): Promise<Client> {
           });
 
           const answer = response.choices[0].message.content;
-          
+
           await sendEmbed(message.channel, {
             title: '🤖 AI教练回答',
             description: answer,
@@ -213,7 +343,7 @@ export async function initializeDiscordBot(token: string): Promise<Client> {
 
   await client.login(token);
   discordClient = client;
-  
+
   return client;
 }
 
