@@ -1,26 +1,19 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1763059276233,
-      "tag": "0000_real_carlie_cooper",
+      "version": "6",
+      "when": 1763581115298,
+      "tag": "0000_open_sprite",
       "breakpoints": true
     },
     {
       "idx": 1,
-      "version": "5",
-      "when": 1763059379626,
-      "tag": "0001_tired_mastermind",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1763059409495,
-      "tag": "0002_spotty_frank_castle",
+      "version": "6",
+      "when": 1763582276820,
+      "tag": "0001_abandoned_freak",
       "breakpoints": true
     }
   ]

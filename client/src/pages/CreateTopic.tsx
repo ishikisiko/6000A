@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
-import { miniDB } from "@/lib/miniDB";
+import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -22,6 +22,17 @@ export default function CreateTopic() {
   const [options, setOptions] = useState<string[]>(["", ""]);
   const [revealDate, setRevealDate] = useState("");
   const [revealTime, setRevealTime] = useState("");
+
+  // 使用 tRPC mutation 创建话题
+  const createTopic = trpc.topics.create.useMutation({
+    onSuccess: () => {
+      toast.success("话题创建成功!", { description: "用户现在可以参与投票或下注了" });
+      setLocation("/topics");
+    },
+    onError: (error) => {
+      toast.error("创建失败", { description: error.message });
+    },
+  });
 
   const addOption = () => {
     setOptions([...options, ""]);
@@ -79,22 +90,13 @@ export default function CreateTopic() {
     }
 
     // 创建话题
-    try {
-      miniDB.createTopic({
-        title: title.trim(),
-        description: description.trim(),
-        type: topicType,
-        options: validOptions,
-        status: 'active',
-        createdBy: user.id,
-        revealAt: revealAt.toISOString(),
-      });
-
-      toast.success("话题创建成功!", { description: "用户现在可以参与投票或下注了" });
-      setLocation("/topics");
-    } catch (error) {
-      toast.error("创建失败", { description: "请稍后重试" });
-    }
+    createTopic.mutate({
+      title: title.trim(),
+      description: description.trim(),
+      topicType,
+      options: validOptions,
+      expiresAt: revealAt,
+    });
   };
 
   if (!user) {

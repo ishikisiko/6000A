@@ -9,6 +9,7 @@ export interface LocalUser {
   role: 'admin' | 'user';
   points: number;
   createdAt: string;
+  team?: string;
 }
 
 export interface LocalTopic {
@@ -111,6 +112,7 @@ class MiniDB {
       role,
       points: 1000, // 初始积分
       createdAt: new Date().toISOString(),
+      team: 'FMH', // 默认团队
     };
     users.push(newUser);
     this.setItem('minidb_users', users);
@@ -322,6 +324,19 @@ class MiniDB {
       this.createUser('管理员', 'admin');
       this.createUser('玩家A', 'user');
       this.createUser('玩家B', 'user');
+    } else {
+      // 为现有用户添加默认team
+      const users = this.getUsers();
+      let hasUpdates = false;
+      users.forEach(user => {
+        if (!user.team) {
+          user.team = 'FMH';
+          hasUpdates = true;
+        }
+      });
+      if (hasUpdates) {
+        this.setItem('minidb_users', users);
+      }
     }
 
     if (this.getTopics().length === 0) {

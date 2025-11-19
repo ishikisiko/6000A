@@ -4,7 +4,7 @@ import { miniDB } from "@/lib/miniDB";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, LogOut, User, Award, TrendingUp, Calendar } from "lucide-react";
+import { ArrowLeft, LogOut, User, Award, TrendingUp, Calendar, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -74,7 +74,7 @@ export default function Profile() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="p-4 bg-secondary rounded-lg">
                   <p className="text-sm text-muted-foreground">{t('profile.joinDate')}</p>
                   <p className="font-semibold mt-1">
@@ -84,6 +84,13 @@ export default function Profile() {
                 <div className="p-4 bg-secondary rounded-lg">
                   <p className="text-sm text-muted-foreground">{t('auth.username')}</p>
                   <p className="font-semibold mt-1">本地用户</p>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    Team
+                  </p>
+                  <p className="font-semibold mt-1 text-primary">{user.team || 'FMH'}</p>
                 </div>
               </div>
             </CardContent>

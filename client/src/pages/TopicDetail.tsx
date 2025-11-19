@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
-import { miniDB } from "@/lib/miniDB";
+import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Users, Trophy } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -16,34 +16,48 @@ import { toast } from "sonner";
 export default function TopicDetail() {
   const [, params] = useRoute("/topic/:topicId");
   const [, setLocation] = useLocation();
-  const topicId = parseInt(params?.topicId || "0");
+  const topicId = params?.topicId || "";
 
   const { user } = useLocalAuth();
-  const topic = miniDB.getTopicById(topicId);
-  const myPoints = user?.points || 0;
   
-  const [selectedChoice, setSelectedChoice] = useState<number>(-1);
+  // 使用 tRPC 从服务器获取数据
+  const { data: topic, isLoading: topicLoading } = trpc.topics.getById.useQuery({ topicId });
+  const { data: myPointsData } = trpc.topics.myPoints.useQuery();
+  const { data: votes } = trpc.topics.getVotes.useQuery({ topicId });
+  const { data: myVotes } = trpc.topics.myVotes.useQuery();
+  
+  const myPoints = typeof myPointsData?.points === 'number' ? myPointsData.points : 0;
+  
+  const [selectedChoice, setSelectedChoice] = useState<string>("");
   const [betPoints, setBetPoints] = useState<number>(10);
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+
+  // 使用 tRPC mutation 提交投票
+  const submitVote = trpc.topics.submit.useMutation({
+    onSuccess: () => {
+      toast.success("提交成功!", { description: "您的选择已记录" });
+      setTimeout(() => setLocation("/topics"), 1000);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   // 计算统计数据
   const getStats = () => {
-    if (!topic) return null;
+    if (!topic || !votes) return null;
     
-    const votes = miniDB.getVotesByTopic(topicId);
     const totalVotes = votes.length;
-    const totalPoints = votes.reduce((sum, v) => sum + v.amount, 0);
+    const totalPoints = votes.reduce((sum, v) => sum + ((v.metadata as any)?.points || 0), 0);
     
-    const choiceStats = topic.options.map((option, index) => {
-      const optionVotes = votes.filter(v => v.choice === index);
+    const choiceStats = topic.options.map((option) => {
+      const optionVotes = votes.filter(v => v.choice === option);
       const voteCount = optionVotes.length;
-      const pointsSum = optionVotes.reduce((sum, v) => sum + v.amount, 0);
+      const pointsSum = optionVotes.reduce((sum, v) => sum + ((v.metadata as any)?.points || 0), 0);
       const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
       
       return {
         choice: option,
-        choiceIndex: index,
         votes: voteCount,
         points: pointsSum,
         percentage,
@@ -54,12 +68,12 @@ export default function TopicDetail() {
       totalVotes,
       totalPoints,
       choiceStats,
-      isAnonymous: votes.some(v => v.amount === 0), // 简单判断是否有匿名
+      isAnonymous: votes.some(v => v.voterAnonId.startsWith('anon_')),
     };
   };
 
   const stats = getStats();
-  const userVote = user ? miniDB.getUserVoteForTopic(user.id, topicId) : null;
+  const userVote = myVotes?.find(v => v.topicId === topicId);
 
   const handleSubmit = () => {
     if (!user) {
@@ -67,17 +81,17 @@ export default function TopicDetail() {
       return;
     }
 
-    if (selectedChoice === -1) {
+    if (!selectedChoice) {
       toast.error("请选择一个选项");
       return;
     }
 
-    if (topic?.type === 'bet' && betPoints < 1) {
+    if (topic?.topicType === 'bet' && betPoints < 1) {
       toast.error("下注积分必须大于0");
       return;
     }
 
-    if (topic?.type === 'bet' && betPoints > myPoints) {
+    if (topic?.topicType === 'bet' && betPoints > myPoints) {
       toast.error("积分不足");
       return;
     }
@@ -88,30 +102,27 @@ export default function TopicDetail() {
       return;
     }
 
-    // 创建投票
-    const amount = topic?.type === 'bet' ? betPoints : 0;
-    miniDB.createVote({
+    // 使用 tRPC 提交投票
+    submitVote.mutate({
       topicId,
-      userId: user.id,
       choice: selectedChoice,
-      amount,
+      points: topic?.topicType === 'bet' ? betPoints : undefined,
+      isAnonymous,
     });
-
-    // 扣除积分并记录交易
-    if (topic?.type === 'bet') {
-      miniDB.updateUserPointsWithTransaction(
-        user.id,
-        -betPoints,
-        'bet',
-        `参与下注: ${topic.title}`,
-        topicId
-      );
-    }
-
-    toast.success("提交成功!", { description: "您的选择已记录" });
-    setRefreshKey(prev => prev + 1);
-    setTimeout(() => setLocation("/topics"), 1000);
   };
+
+  if (topicLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">加载中...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (!topic) {
     return (
@@ -143,8 +154,8 @@ export default function TopicDetail() {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-bold">{topic.title}</h1>
-              <Badge variant={topic.type === 'bet' ? 'default' : 'secondary'}>
-                {topic.type === 'bet' ? '🎲 下注' : '📊 投票'}
+              <Badge variant={topic.topicType === 'bet' ? 'default' : 'secondary'}>
+                {topic.topicType === 'bet' ? '🎲 下注' : '📊 投票'}
               </Badge>
               <Badge variant={isActive ? 'default' : isRevealed ? 'destructive' : 'outline'}>
                 {isActive ? '进行中' : isRevealed ? '已揭晓' : '已关闭'}
@@ -163,17 +174,17 @@ export default function TopicDetail() {
             {isActive && !userVote && (
               <Card>
                 <CardHeader>
-                  <CardTitle>参与{topic.type === 'bet' ? '下注' : '投票'}</CardTitle>
+                  <CardTitle>参与{topic.topicType === 'bet' ? '下注' : '投票'}</CardTitle>
                   <CardDescription>
-                    选择您认为正确的选项{topic.type === 'bet' && ',并设置下注积分'}
+                    选择您认为正确的选项{topic.topicType === 'bet' && ',并设置下注积分'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <RadioGroup value={selectedChoice.toString()} onValueChange={(v) => setSelectedChoice(parseInt(v))}>
+                  <RadioGroup value={selectedChoice} onValueChange={setSelectedChoice}>
                     <div className="space-y-3">
                       {topic.options.map((option, index) => (
                         <div key={index} className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-accent transition-colors">
-                          <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                          <RadioGroupItem value={option} id={`option-${index}`} />
                           <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                             {option}
                           </Label>
@@ -182,7 +193,7 @@ export default function TopicDetail() {
                     </div>
                   </RadioGroup>
 
-                  {topic.type === 'bet' && (
+                  {topic.topicType === 'bet' && (
                     <div className="space-y-2">
                       <Label htmlFor="points">下注积分</Label>
                       <div className="flex items-center gap-4">
@@ -216,9 +227,9 @@ export default function TopicDetail() {
                   <Button
                     className="w-full"
                     onClick={handleSubmit}
-                    disabled={selectedChoice === -1}
+                    disabled={!selectedChoice || submitVote.isPending}
                   >
-                    确认提交
+                    {submitVote.isPending ? '提交中...' : '确认提交'}
                   </Button>
                 </CardContent>
               </Card>
@@ -235,8 +246,8 @@ export default function TopicDetail() {
                     <div>
                       <h3 className="font-semibold">您已参与此话题</h3>
                       <p className="text-sm text-muted-foreground">
-                        您选择了: {topic.options[userVote.choice]}
-                        {topic.type === 'bet' && ` (下注 ${userVote.amount} 积分)`}
+                        您选择了: {userVote.choice}
+                        {topic.topicType === 'bet' && ` (下注 ${(userVote.metadata as any)?.points || 0} 积分)`}
                       </p>
                     </div>
                   </div>
@@ -254,15 +265,15 @@ export default function TopicDetail() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {stats.choiceStats.map((stat) => (
-                    <div key={stat.choiceIndex} className="space-y-2">
+                  {stats.choiceStats.map((stat, index) => (
+                    <div key={index} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{stat.choice}</span>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-muted-foreground">
                             {stat.votes} 票 ({stat.percentage}%)
                           </span>
-                          {topic.type === 'bet' && (
+                          {topic.topicType === 'bet' && (
                             <Badge variant="outline">{stat.points} 积分</Badge>
                           )}
                         </div>
@@ -294,7 +305,7 @@ export default function TopicDetail() {
                     <p className="text-xl font-bold">{stats?.totalVotes || 0}</p>
                   </div>
                 </div>
-                {topic.type === 'bet' && (
+                {topic.topicType === 'bet' && (
                   <div className="flex items-center gap-3">
                     <Trophy className="h-5 w-5 text-yellow-500" />
                     <div>

@@ -1,1 +1,0 @@
-ALTER TABLE `userPoints` MODIFY COLUMN `badges` json;

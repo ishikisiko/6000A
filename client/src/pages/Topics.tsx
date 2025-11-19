@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
-import { miniDB } from "@/lib/miniDB";
+import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -24,37 +24,49 @@ export default function Topics() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const { user } = useLocalAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // 使用tRPC从数据库获取数据
+  const { data: allTopics, isLoading, refetch } = trpc.topics.list.useQuery({});
+  const { data: myPointsData } = trpc.topics.myPoints.useQuery();
+  const { data: myVotes } = trpc.topics.myVotes.useQuery();
+  
+  const myPoints = typeof myPointsData?.points === 'number' ? myPointsData.points : 0;
+  const topics = allTopics || [];
 
-  const topics = miniDB.getTopics();
-  const myPoints = user?.points || 0;
+  const deleteTopic = trpc.topics.delete.useMutation({
+    onSuccess: () => {
+      toast.success(t('topics.deleted'));
+      refetch(); // 重新获取数据
+    },
+    onError: () => {
+      toast.error('删除失败');
+    },
+  });
 
-  const handleDelete = (topicId: number) => {
-    miniDB.deleteTopic(topicId);
-    toast.success(t('topics.deleted'));
-    setRefreshKey(prev => prev + 1); // 触发重新渲染
+  const handleDelete = (topicId: string) => {
+    deleteTopic.mutate({ topicId });
   };
 
   const activeTopics = topics.filter(t => t.status === 'active');
   const closedTopics = topics.filter(t => t.status === 'closed');
   const revealedTopics = topics.filter(t => t.status === 'revealed');
 
-  const getTopicStats = (topicId: number) => {
-    const votes = miniDB.getVotesByTopic(topicId);
+  const getTopicStats = (topicId: string) => {
+    const votes = myVotes?.filter(v => v.topicId === topicId) || [];
     const totalVotes = votes.length;
-    const totalAmount = votes.reduce((sum, v) => sum + v.amount, 0);
+    const totalAmount = votes.reduce((sum, v) => sum + ((v.metadata as any)?.points || 0), 0);
     return { totalVotes, totalAmount };
   };
 
   const renderTopicCard = (topic: any) => {
-    const stats = getTopicStats(topic.id);
-    const userVote = user ? miniDB.getUserVoteForTopic(user.id, topic.id) : null;
+    const stats = getTopicStats(topic.topicId);
+    const userVote = myVotes?.find(v => v.topicId === topic.topicId);
     
     return (
       <Card 
-        key={topic.id} 
+        key={topic.topicId} 
         className="hover:shadow-lg transition-shadow cursor-pointer border-primary/20 relative"
-        onClick={() => setLocation(`/topic/${topic.id}`)}
+        onClick={() => setLocation(`/topic/${topic.topicId}`)}
       >
         {user?.role === 'admin' && (
           <AlertDialog>
@@ -76,7 +88,7 @@ export default function Topics() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => handleDelete(topic.id)}>
+                <AlertDialogAction onClick={() => handleDelete(topic.topicId)}>
                   {t('common.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -91,8 +103,8 @@ export default function Topics() {
             </div>
           </div>
           <div className="flex gap-2 mt-3">
-            <Badge variant={topic.type === 'bet' ? 'default' : 'secondary'}>
-              {topic.type === 'bet' ? t('topics.bet') : t('topics.vote')}
+            <Badge variant={topic.topicType === 'bet' ? 'default' : 'secondary'}>
+              {topic.topicType === 'bet' ? t('topics.bet') : t('topics.vote')}
             </Badge>
             {userVote && (
               <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
@@ -108,7 +120,7 @@ export default function Topics() {
                 <Users className="h-4 w-4" />
                 {stats.totalVotes} {t('topics.participants')}
               </span>
-              {topic.type === 'bet' && (
+              {topic.topicType === 'bet' && (
                 <span className="flex items-center gap-1">
                   <Trophy className="h-4 w-4" />
                   {stats.totalAmount} {t('topic.points')}
@@ -117,7 +129,7 @@ export default function Topics() {
             </div>
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              {new Date(topic.revealAt).toLocaleDateString()}
+              {topic.revealAt ? new Date(topic.revealAt).toLocaleDateString() : '未设置'}
             </span>
           </div>
         </CardContent>
@@ -200,7 +212,12 @@ export default function Topics() {
           </div>
         )}
 
-        {topics.length === 0 && (
+        {isLoading ? (
+          <Card className="p-12 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">加载中...</p>
+          </Card>
+        ) : topics.length === 0 ? (
           <Card className="p-12 text-center">
             <Vote className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">{t('topics.noTopics')}</h3>
@@ -210,7 +227,7 @@ export default function Topics() {
                 : t('topics.waitForAdmin')}
             </p>
           </Card>
-        )}
+        ) : null}
       </div>
     </div>
   );

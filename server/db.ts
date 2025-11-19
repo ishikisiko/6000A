@@ -1,35 +1,75 @@
-import { eq, and, desc, asc, gte, lte, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, users,
-  matches, Match, InsertMatch,
-  phases, Phase, InsertPhase,
-  events, Event, InsertEvent,
-  ttdSamples, TTDSample, InsertTTDSample,
-  voiceTurns, VoiceTurn, InsertVoiceTurn,
-  combos, Combo, InsertCombo,
-  betVotes, BetVote, InsertBetVote,
-  topics, Topic, InsertTopic,
-  userPoints, UserPoints, InsertUserPoints,
-  consents, Consent, InsertConsent,
-  dataRetention, DataRetention, InsertDataRetention,
-  auditLogs, AuditLog, InsertAuditLog,
-  processingTasks, ProcessingTask, InsertProcessingTask
+import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import {
+  InsertUser,
+  users,
+  matches,
+  Match,
+  InsertMatch,
+  phases,
+  Phase,
+  InsertPhase,
+  events,
+  Event,
+  InsertEvent,
+  ttdSamples,
+  TTDSample,
+  InsertTTDSample,
+  voiceTurns,
+  VoiceTurn,
+  InsertVoiceTurn,
+  combos,
+  Combo,
+  InsertCombo,
+  betVotes,
+  BetVote,
+  InsertBetVote,
+  topics,
+  Topic,
+  InsertTopic,
+  userPoints,
+  UserPoints,
+  consents,
+  Consent,
+  InsertConsent,
+  dataRetention,
+  DataRetention,
+  InsertDataRetention,
+  auditLogs,
+  AuditLog,
+  InsertAuditLog,
+  processingTasks,
+  ProcessingTask,
+  InsertProcessingTask,
 } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import * as schema from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+let sqlite: Database | null = null;
+let _db: BetterSQLite3Database<typeof schema> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+  if (_db) {
+    return _db;
   }
+
+  try {
+    const dbPath = ENV.databaseUrl;
+    mkdirSync(dirname(dbPath), { recursive: true });
+    sqlite = new Database(dbPath);
+    sqlite.pragma("journal_mode = WAL");
+    sqlite.pragma("foreign_keys = ON");
+    _db = drizzle(sqlite, { schema });
+  } catch (error) {
+    console.warn("[Database] Failed to connect:", error);
+    sqlite = null;
+    _db = null;
+  }
+
   return _db;
 }
 
@@ -83,9 +123,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    await db
+      .insert(users)
+      .values(values)
+      .onConflictDoUpdate({
+        target: users.openId,
+        set: updateSet,
+      });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -108,10 +152,12 @@ export async function getUserByOpenId(openId: string) {
 export async function createMatch(match: InsertMatch): Promise<Match> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(matches).values(match);
-  const inserted = await db.select().from(matches).where(eq(matches.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(matches).values(match).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert match");
+  }
+  return inserted;
 }
 
 export async function getMatchById(id: number): Promise<Match | undefined> {
@@ -141,10 +187,12 @@ export async function getMatchesByUserId(userId: number, limit: number = 50): Pr
 export async function createPhase(phase: InsertPhase): Promise<Phase> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(phases).values(phase);
-  const inserted = await db.select().from(phases).where(eq(phases.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(phases).values(phase).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert phase");
+  }
+  return inserted;
 }
 
 export async function getPhasesByMatchId(matchId: number): Promise<Phase[]> {
@@ -158,10 +206,12 @@ export async function getPhasesByMatchId(matchId: number): Promise<Phase[]> {
 export async function createEvent(event: InsertEvent): Promise<Event> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(events).values(event);
-  const inserted = await db.select().from(events).where(eq(events.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(events).values(event).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert event");
+  }
+  return inserted;
 }
 
 export async function getEventsByMatchId(matchId: number, startTs?: Date, endTs?: Date): Promise<Event[]> {
@@ -187,10 +237,12 @@ export async function getEventsByMatchId(matchId: number, startTs?: Date, endTs?
 export async function createTTDSample(sample: InsertTTDSample): Promise<TTDSample> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(ttdSamples).values(sample);
-  const inserted = await db.select().from(ttdSamples).where(eq(ttdSamples.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(ttdSamples).values(sample).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert TTD sample");
+  }
+  return inserted;
 }
 
 export async function getTTDSamplesByMatchId(matchId: number, phaseId?: number): Promise<TTDSample[]> {
@@ -210,10 +262,12 @@ export async function getTTDSamplesByMatchId(matchId: number, phaseId?: number):
 export async function createVoiceTurn(turn: InsertVoiceTurn): Promise<VoiceTurn> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(voiceTurns).values(turn);
-  const inserted = await db.select().from(voiceTurns).where(eq(voiceTurns.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(voiceTurns).values(turn).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert voice turn");
+  }
+  return inserted;
 }
 
 export async function getVoiceTurnsByMatchId(matchId: number): Promise<VoiceTurn[]> {
@@ -227,10 +281,12 @@ export async function getVoiceTurnsByMatchId(matchId: number): Promise<VoiceTurn
 export async function createCombo(combo: InsertCombo): Promise<Combo> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(combos).values(combo);
-  const inserted = await db.select().from(combos).where(eq(combos.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(combos).values(combo).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert combo");
+  }
+  return inserted;
 }
 
 export async function getCombosByMatchId(matchId: number): Promise<Combo[]> {
@@ -244,10 +300,12 @@ export async function getCombosByMatchId(matchId: number): Promise<Combo[]> {
 export async function createTopic(topic: InsertTopic): Promise<Topic> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(topics).values(topic);
-  const inserted = await db.select().from(topics).where(eq(topics.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(topics).values(topic).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert topic");
+  }
+  return inserted;
 }
 
 export async function getTopicByTopicId(topicId: string): Promise<Topic | undefined> {
@@ -290,10 +348,12 @@ export async function updateTopicStatus(topicId: string, status: 'active' | 'clo
 export async function createBetVote(betVote: InsertBetVote): Promise<BetVote> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(betVotes).values(betVote);
-  const inserted = await db.select().from(betVotes).where(eq(betVotes.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(betVotes).values(betVote).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert bet vote");
+  }
+  return inserted;
 }
 
 export async function getBetVotesByTopicId(topicId: string): Promise<BetVote[]> {
@@ -376,10 +436,12 @@ export async function updateUserPoints(userId: number, points: number, badges?: 
 export async function createProcessingTask(task: InsertProcessingTask): Promise<ProcessingTask> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(processingTasks).values(task);
-  const inserted = await db.select().from(processingTasks).where(eq(processingTasks.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(processingTasks).values(task).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert processing task");
+  }
+  return inserted;
 }
 
 export async function getProcessingTaskByTaskId(taskId: string): Promise<ProcessingTask | undefined> {
@@ -409,10 +471,12 @@ export async function createAuditLog(log: InsertAuditLog): Promise<void> {
 export async function createConsent(consent: InsertConsent): Promise<Consent> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(consents).values(consent);
-  const inserted = await db.select().from(consents).where(eq(consents.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(consents).values(consent).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert consent");
+  }
+  return inserted;
 }
 
 export async function getUserConsents(userId: number): Promise<Consent[]> {
@@ -426,10 +490,12 @@ export async function getUserConsents(userId: number): Promise<Consent[]> {
 export async function createDataRetention(retention: InsertDataRetention): Promise<DataRetention> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(dataRetention).values(retention);
-  const inserted = await db.select().from(dataRetention).where(eq(dataRetention.id, Number(result[0].insertId))).limit(1);
-  return inserted[0];
+
+  const [inserted] = await db.insert(dataRetention).values(retention).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert data retention row");
+  }
+  return inserted;
 }
 
 export async function getExpiredDataRetentions(): Promise<DataRetention[]> {

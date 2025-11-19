@@ -3,5 +3,5 @@ import Dashboard from "./Dashboard";
 
 export default function DashboardPage() {
   const { user } = useLocalAuth();
-  return <Dashboard userName={user?.name || undefined} />;
+  return <Dashboard userName={user?.name || undefined} teamName={user?.team || 'FMH'} />;
 }

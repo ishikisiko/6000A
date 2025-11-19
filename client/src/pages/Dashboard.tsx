@@ -4,13 +4,17 @@ import { Activity, BarChart3, MessageSquare, Trophy, Users, Bot, User as UserIco
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { trpc } from "@/lib/trpc";
 
 interface DashboardProps {
   userName?: string;
+  teamName?: string;
 }
 
-export default function Dashboard({ userName }: DashboardProps) {
+export default function Dashboard({ userName, teamName }: DashboardProps) {
   const { t } = useLanguage();
+  const { data: activeTopics, isLoading: isLoadingTopics } = trpc.topics.list.useQuery({ status: 'active' });
+  const recentTopics = activeTopics?.slice(0, 2) || [];
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -20,7 +24,9 @@ export default function Dashboard({ userName }: DashboardProps) {
             <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
               {t('dashboard.welcome')}, {userName || t('dashboard.coach')}
             </h1>
-            <p className="text-muted-foreground mt-2 text-lg">{t('dashboard.readyForNextMatch')}</p>
+            <p className="text-muted-foreground mt-2 text-lg">
+              {t('dashboard.readyForNextMatch')} • Team: <span className="text-primary font-semibold">{teamName}</span>
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
@@ -78,7 +84,7 @@ export default function Dashboard({ userName }: DashboardProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">0</div>
+              <div className="text-3xl font-bold">{activeTopics?.length || 0}</div>
               <p className="text-xs text-muted-foreground mt-1">{t('dashboard.votingBetting')}</p>
             </CardContent>
           </Card>
@@ -140,33 +146,33 @@ export default function Dashboard({ userName }: DashboardProps) {
               <CardDescription>{t('dashboard.learnCapabilities')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="rounded-xl bg-primary/20 p-3 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-                  <Activity className="h-6 w-6 text-primary" />
+              {isLoadingTopics ? (
+                <div className="flex justify-center p-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">{t('dashboard.smartPhaseDetection')}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('dashboard.autoDetectTurningPoints')}</p>
+              ) : recentTopics.length > 0 ? (
+                recentTopics.map((topic) => (
+                  <div key={topic.topicId} className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors">
+                    <div className={`rounded-xl p-3 shadow-[0_0_15px_rgba(139,92,246,0.3)] ${topic.topicType === 'bet' ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}>
+                      {topic.topicType === 'bet' ? <Trophy className="h-6 w-6 text-amber-500" /> : <MessageSquare className="h-6 w-6 text-blue-500" />}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1">{topic.title}</h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{topic.description || "No description"}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {topic.options.slice(0, 2).map((opt) => (
+                          <span key={opt} className="text-xs bg-white/10 px-2 py-1 rounded">{opt}</span>
+                        ))}
+                        {topic.options.length > 2 && <span className="text-xs text-muted-foreground">+{topic.options.length - 2}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground p-4">
+                  No active topics
                 </div>
-              </div>
-              <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="rounded-xl bg-cyan-500/20 p-3 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                  <Users className="h-6 w-6 text-cyan-400" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">{t('dashboard.collabAnalysis')}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('dashboard.findBestCombos')}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="rounded-xl bg-green-500/20 p-3 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
-                  <MessageSquare className="h-6 w-6 text-green-400" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">{t('dashboard.aiSuggestions')}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('dashboard.getActionableAdvice')}</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

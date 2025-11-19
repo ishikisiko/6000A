@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   createTopic,
@@ -16,7 +16,7 @@ import {
 
 export const topicsRouter = router({
   // Get all active topics
-  list: protectedProcedure
+  list: publicProcedure
     .input(z.object({
       status: z.enum(['active', 'closed', 'settled']).optional(),
       topicType: z.enum(['bet', 'vote']).optional(),
@@ -31,7 +31,7 @@ export const topicsRouter = router({
     }),
 
   // Get topic by ID
-  getById: protectedProcedure
+  getById: publicProcedure
     .input(z.object({
       topicId: z.string(),
     }))
@@ -44,7 +44,7 @@ export const topicsRouter = router({
     }),
 
   // Get topic votes/bets
-  getVotes: protectedProcedure
+  getVotes: publicProcedure
     .input(z.object({
       topicId: z.string(),
     }))
