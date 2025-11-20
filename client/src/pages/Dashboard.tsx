@@ -15,6 +15,12 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
   const { t } = useLanguage();
   const { data: activeTopics, isLoading: isLoadingTopics } = trpc.topics.list.useQuery({ status: 'active' });
   const recentTopics = activeTopics?.slice(0, 2) || [];
+  const statsByUser: Record<string, { totalMatches: number; avgTTD: string; teamCollab: string }> = {
+    admin: { totalMatches: 24, avgTTD: "0.82s", teamCollab: "73%" },
+    hzy: { totalMatches: 16, avgTTD: "0.94s", teamCollab: "68%" },
+  };
+  const normalizedName = userName?.trim().toLowerCase();
+  const personalizedStats = (normalizedName && statsByUser[normalizedName]) || { totalMatches: 0, avgTTD: "--", teamCollab: "--" };
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -36,43 +42,45 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <Card className="border-t-4 border-t-primary">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('dashboard.totalMatches')}</CardTitle>
-              <div className="p-2 bg-primary/10 rounded-full">
-                <Trophy className="h-4 w-4 text-primary" />
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          <Card className="lg:col-span-2 border-t-4 border-t-primary">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Performance Snapshot</CardTitle>
+              <CardDescription>{t('dashboard.readyForNextMatch')}</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.uploadFirstMatch')}</p>
-            </CardContent>
-          </Card>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg border bg-background/60 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.totalMatches')}</p>
+                  <p className="text-3xl font-bold mt-1">{personalizedStats.totalMatches}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('dashboard.uploadFirstMatch')}</p>
+                </div>
+                <div className="p-2 bg-primary/10 rounded-full">
+                  <Trophy className="h-4 w-4 text-primary" />
+                </div>
+              </div>
 
-          <Card className="border-t-4 border-t-cyan-500">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('dashboard.avgTTD')}</CardTitle>
-              <div className="p-2 bg-cyan-500/10 rounded-full">
-                <Activity className="h-4 w-4 text-cyan-500" />
+              <div className="p-4 rounded-lg border bg-background/60 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.avgTTD')}</p>
+                  <p className="text-3xl font-bold mt-1">{personalizedStats.avgTTD}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('dashboard.ttdAnalysis')}</p>
+                </div>
+                <div className="p-2 bg-cyan-500/10 rounded-full">
+                  <Activity className="h-4 w-4 text-cyan-500" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.ttdAnalysis')}</p>
-            </CardContent>
-          </Card>
 
-          <Card className="border-t-4 border-t-green-500">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('dashboard.teamCollab')}</CardTitle>
-              <div className="p-2 bg-green-500/10 rounded-full">
-                <Users className="h-4 w-4 text-green-500" />
+              <div className="p-4 rounded-lg border bg-background/60 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.teamCollab')}</p>
+                  <p className="text-3xl font-bold mt-1">{personalizedStats.teamCollab}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('dashboard.comboWinRate')}</p>
+                </div>
+                <div className="p-2 bg-green-500/10 rounded-full">
+                  <Users className="h-4 w-4 text-green-500" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.comboWinRate')}</p>
             </CardContent>
           </Card>
 

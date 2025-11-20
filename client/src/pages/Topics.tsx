@@ -30,7 +30,9 @@ export default function Topics() {
   const { data: myPointsData } = trpc.topics.myPoints.useQuery();
   const { data: myVotes } = trpc.topics.myVotes.useQuery();
   
-  const myPoints = typeof myPointsData?.points === 'number' ? myPointsData.points : 0;
+  const myPoints = typeof user?.points === 'number'
+    ? user.points
+    : (typeof myPointsData?.points === 'number' ? myPointsData.points : 0);
   const topics = allTopics || [];
 
   const deleteTopic = trpc.topics.delete.useMutation({

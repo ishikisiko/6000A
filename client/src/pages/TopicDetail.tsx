@@ -26,7 +26,9 @@ export default function TopicDetail() {
   const { data: votes } = trpc.topics.getVotes.useQuery({ topicId });
   const { data: myVotes } = trpc.topics.myVotes.useQuery();
   
-  const myPoints = typeof myPointsData?.points === 'number' ? myPointsData.points : 0;
+  const myPoints = typeof user?.points === 'number'
+    ? user.points
+    : (typeof myPointsData?.points === 'number' ? myPointsData.points : 0);
   
   const [selectedChoice, setSelectedChoice] = useState<string>("");
   const [betPoints, setBetPoints] = useState<number>(10);
