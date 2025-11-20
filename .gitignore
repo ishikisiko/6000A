@@ -190,3 +190,7 @@ test-results.xml
 
 # Linux
 *~
+data/app.sqlite-shm
+data/app.sqlite-wal
+sqlite_data/db.sqlite-shm
+sqlite_data/db.sqlite-wal
