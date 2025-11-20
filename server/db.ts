@@ -1,8 +1,9 @@
 import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import {
   InsertUser,
   users,
@@ -50,6 +51,25 @@ import { ENV } from "./_core/env";
 
 let sqlite: Database | null = null;
 let _db: BetterSQLite3Database<typeof schema> | null = null;
+let initPromise: Promise<BetterSQLite3Database<typeof schema> | null> | null = null;
+let migrationPromise: Promise<void> | null = null;
+
+async function runMigrations(db: BetterSQLite3Database<typeof schema>) {
+  if (migrationPromise) return migrationPromise;
+
+  migrationPromise = (async () => {
+    try {
+      migrate(db, {
+        migrationsFolder: join(process.cwd(), "drizzle"),
+      });
+    } catch (error) {
+      migrationPromise = null;
+      throw error;
+    }
+  })();
+
+  return migrationPromise;
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -57,20 +77,33 @@ export async function getDb() {
     return _db;
   }
 
-  try {
-    const dbPath = ENV.databaseUrl;
-    mkdirSync(dirname(dbPath), { recursive: true });
-    sqlite = new Database(dbPath);
-    sqlite.pragma("journal_mode = WAL");
-    sqlite.pragma("foreign_keys = ON");
-    _db = drizzle(sqlite, { schema });
-  } catch (error) {
-    console.warn("[Database] Failed to connect:", error);
-    sqlite = null;
-    _db = null;
+  if (initPromise) {
+    return initPromise;
   }
 
-  return _db;
+  initPromise = (async () => {
+    try {
+      const dbPath = ENV.databaseUrl;
+      mkdirSync(dirname(dbPath), { recursive: true });
+      sqlite = new Database(dbPath);
+      sqlite.pragma("journal_mode = WAL");
+      sqlite.pragma("foreign_keys = ON");
+
+      const db = drizzle(sqlite, { schema });
+      await runMigrations(db);
+      _db = db;
+      return _db;
+    } catch (error) {
+      console.warn("[Database] Failed to connect:", error);
+      sqlite = null;
+      _db = null;
+      return null;
+    } finally {
+      initPromise = null;
+    }
+  })();
+
+  return initPromise;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -163,7 +196,7 @@ export async function createMatch(match: InsertMatch): Promise<Match> {
 export async function getMatchById(id: number): Promise<Match | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  
+
   const result = await db.select().from(matches).where(eq(matches.id, id)).limit(1);
   return result[0];
 }
@@ -171,7 +204,7 @@ export async function getMatchById(id: number): Promise<Match | undefined> {
 export async function getMatchByMatchId(matchId: string): Promise<Match | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  
+
   const result = await db.select().from(matches).where(eq(matches.matchId, matchId)).limit(1);
   return result[0];
 }
@@ -179,7 +212,7 @@ export async function getMatchByMatchId(matchId: string): Promise<Match | undefi
 export async function getMatchesByUserId(userId: number, limit: number = 50): Promise<Match[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db.select().from(matches).where(eq(matches.userId, userId)).orderBy(desc(matches.startTs)).limit(limit);
 }
 
@@ -198,7 +231,7 @@ export async function createPhase(phase: InsertPhase): Promise<Phase> {
 export async function getPhasesByMatchId(matchId: number): Promise<Phase[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db.select().from(phases).where(eq(phases.matchId, matchId)).orderBy(asc(phases.startTs));
 }
 
@@ -217,9 +250,9 @@ export async function createEvent(event: InsertEvent): Promise<Event> {
 export async function getEventsByMatchId(matchId: number, startTs?: Date, endTs?: Date): Promise<Event[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   let query = db.select().from(events).where(eq(events.matchId, matchId));
-  
+
   if (startTs && endTs) {
     query = db.select().from(events).where(
       and(
@@ -229,7 +262,7 @@ export async function getEventsByMatchId(matchId: number, startTs?: Date, endTs?
       )
     );
   }
-  
+
   return await query.orderBy(asc(events.eventTs));
 }
 
@@ -248,13 +281,13 @@ export async function createTTDSample(sample: InsertTTDSample): Promise<TTDSampl
 export async function getTTDSamplesByMatchId(matchId: number, phaseId?: number): Promise<TTDSample[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   if (phaseId) {
     return await db.select().from(ttdSamples).where(
       and(eq(ttdSamples.matchId, matchId), eq(ttdSamples.phaseId, phaseId))
     ).orderBy(asc(ttdSamples.eventSrcTs));
   }
-  
+
   return await db.select().from(ttdSamples).where(eq(ttdSamples.matchId, matchId)).orderBy(asc(ttdSamples.eventSrcTs));
 }
 
@@ -273,7 +306,7 @@ export async function createVoiceTurn(turn: InsertVoiceTurn): Promise<VoiceTurn>
 export async function getVoiceTurnsByMatchId(matchId: number): Promise<VoiceTurn[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db.select().from(voiceTurns).where(eq(voiceTurns.matchId, matchId)).orderBy(asc(voiceTurns.startTs));
 }
 
@@ -292,7 +325,7 @@ export async function createCombo(combo: InsertCombo): Promise<Combo> {
 export async function getCombosByMatchId(matchId: number): Promise<Combo[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db.select().from(combos).where(eq(combos.matchId, matchId)).orderBy(desc(combos.winRate));
 }
 
@@ -311,7 +344,7 @@ export async function createTopic(topic: InsertTopic): Promise<Topic> {
 export async function getTopicByTopicId(topicId: string): Promise<Topic | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  
+
   const result = await db.select().from(topics).where(eq(topics.topicId, topicId)).limit(1);
   return result[0];
 }
@@ -319,20 +352,20 @@ export async function getTopicByTopicId(topicId: string): Promise<Topic | undefi
 export async function getActiveTopics(matchId?: number): Promise<Topic[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   if (matchId) {
     return await db.select().from(topics).where(
       and(eq(topics.matchId, matchId), eq(topics.status, 'active'))
     ).orderBy(desc(topics.createdAt));
   }
-  
+
   return await db.select().from(topics).where(eq(topics.status, 'active')).orderBy(desc(topics.createdAt));
 }
 
 export async function getTopicById(topicId: string): Promise<Topic | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  
+
   const result = await db.select().from(topics).where(eq(topics.topicId, topicId)).limit(1);
   return result[0];
 }
@@ -340,7 +373,7 @@ export async function getTopicById(topicId: string): Promise<Topic | undefined> 
 export async function updateTopicStatus(topicId: string, status: 'active' | 'closed' | 'revealed'): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db.update(topics).set({ status }).where(eq(topics.topicId, topicId));
 }
 
@@ -359,14 +392,14 @@ export async function createBetVote(betVote: InsertBetVote): Promise<BetVote> {
 export async function getBetVotesByTopicId(topicId: string): Promise<BetVote[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db.select().from(betVotes).where(eq(betVotes.topicId, topicId));
 }
 
 export async function getBetVotesByUserId(userId: number): Promise<BetVote[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   // Find votes where metadata contains the userId
   const allVotes = await db.select().from(betVotes);
   return allVotes.filter(v => (v.metadata as any)?.userId === userId);
@@ -375,22 +408,22 @@ export async function getBetVotesByUserId(userId: number): Promise<BetVote[]> {
 export async function settleTopicResults(topicId: string, correctChoice: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   // Update topic status
   await db.update(topics).set({ status: 'revealed' }).where(eq(topics.topicId, topicId));
-  
+
   // Get all votes for this topic
   const votes = await getBetVotesByTopicId(topicId);
   const correctVotes = votes.filter(v => v.choice === correctChoice);
   const totalPoints = votes.reduce((sum, v) => sum + ((v.metadata as any)?.points || 0), 0);
   const correctPoints = correctVotes.reduce((sum, v) => sum + ((v.metadata as any)?.points || 0), 0);
-  
+
   // Distribute points to winners
   if (correctVotes.length > 0 && correctPoints > 0) {
     for (const vote of correctVotes) {
       const userId = (vote.metadata as any)?.userId;
       const betPoints = (vote.metadata as any)?.points || 0;
-      
+
       if (userId && betPoints > 0) {
         // Calculate winnings (proportional to bet)
         const winnings = Math.floor((betPoints / correctPoints) * totalPoints);
@@ -405,7 +438,7 @@ export async function settleTopicResults(topicId: string, correctChoice: string)
 export async function getUserPoints(userId: number): Promise<UserPoints | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  
+
   const result = await db.select().from(userPoints).where(eq(userPoints.userId, userId)).limit(1);
   return result[0];
 }
@@ -413,14 +446,14 @@ export async function getUserPoints(userId: number): Promise<UserPoints | undefi
 export async function updateUserPoints(userId: number, points: number, badges?: string[], streak?: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const existing = await getUserPoints(userId);
-  
+
   if (existing) {
     const updateData: any = { points: Math.max(0, existing.points + points) }; // Prevent negative points
     if (badges) updateData.badges = badges;
     if (streak !== undefined) updateData.streak = streak;
-    
+
     await db.update(userPoints).set(updateData).where(eq(userPoints.userId, userId));
   } else {
     await db.insert(userPoints).values({
@@ -447,7 +480,7 @@ export async function createProcessingTask(task: InsertProcessingTask): Promise<
 export async function getProcessingTaskByTaskId(taskId: string): Promise<ProcessingTask | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  
+
   const result = await db.select().from(processingTasks).where(eq(processingTasks.taskId, taskId)).limit(1);
   return result[0];
 }
@@ -455,7 +488,7 @@ export async function getProcessingTaskByTaskId(taskId: string): Promise<Process
 export async function updateProcessingTask(taskId: string, updates: Partial<ProcessingTask>): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db.update(processingTasks).set(updates).where(eq(processingTasks.taskId, taskId));
 }
 
@@ -463,7 +496,7 @@ export async function updateProcessingTask(taskId: string, updates: Partial<Proc
 export async function createAuditLog(log: InsertAuditLog): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  
+
   await db.insert(auditLogs).values(log);
 }
 
@@ -482,7 +515,7 @@ export async function createConsent(consent: InsertConsent): Promise<Consent> {
 export async function getUserConsents(userId: number): Promise<Consent[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db.select().from(consents).where(eq(consents.userId, userId)).orderBy(desc(consents.createdAt));
 }
 
@@ -501,7 +534,7 @@ export async function createDataRetention(retention: InsertDataRetention): Promi
 export async function getExpiredDataRetentions(): Promise<DataRetention[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db.select().from(dataRetention).where(
     and(
       lte(dataRetention.deleteAt, new Date()),

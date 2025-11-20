@@ -172,7 +172,7 @@ class SDKServer {
       {
         openId,
         appId: ENV.appId,
-        name: options.name || "",
+        name: options.name || openId,
       },
       options
     );
@@ -211,11 +211,13 @@ class SDKServer {
         algorithms: ["HS256"],
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
+      const resolvedAppId = isNonEmptyString(appId) ? appId : ENV.appId;
+      const resolvedName = isNonEmptyString(name) ? name : openId;
 
       if (
         !isNonEmptyString(openId) ||
-        !isNonEmptyString(appId) ||
-        !isNonEmptyString(name)
+        !isNonEmptyString(resolvedAppId) ||
+        !isNonEmptyString(resolvedName)
       ) {
         console.warn("[Auth] Session payload missing required fields");
         return null;
@@ -223,8 +225,8 @@ class SDKServer {
 
       return {
         openId,
-        appId,
-        name,
+        appId: resolvedAppId,
+        name: resolvedName,
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));

@@ -4,9 +4,10 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { discordRouter } from "./discord/routes";
 import { topicsRouter } from "./routers/topics";
+import { devRouter } from "./routers/dev";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { 
+import {
   createMatch, getMatchById, getMatchByMatchId, getMatchesByUserId,
   createPhase, getPhasesByMatchId,
   createEvent, getEventsByMatchId,
@@ -27,7 +28,8 @@ export const appRouter = router({
   system: systemRouter,
   discord: discordRouter,
   topics: topicsRouter,
-  
+  dev: devRouter,
+
   auth: router({
     me: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user) {
@@ -65,7 +67,7 @@ export const appRouter = router({
           ...input,
           userId: ctx.user.id,
         });
-        
+
         // Create audit log
         await createAuditLog({
           userId: ctx.user.id,
@@ -74,7 +76,7 @@ export const appRouter = router({
           resourceId: match.id,
           details: { matchId: match.matchId },
         });
-        
+
         // Create data retention policy (default 30 days)
         const deleteAt = new Date();
         deleteAt.setDate(deleteAt.getDate() + 30);
@@ -84,10 +86,10 @@ export const appRouter = router({
           deleteAt,
           frozen: false,
         });
-        
+
         return match;
       }),
-    
+
     list: protectedProcedure
       .input(z.object({
         limit: z.number().optional(),
@@ -95,7 +97,7 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         return await getMatchesByUserId(ctx.user.id, input.limit);
       }),
-    
+
     get: protectedProcedure
       .input(z.object({
         id: z.number().optional(),
@@ -166,7 +168,7 @@ export const appRouter = router({
         }
         return await getTTDSamplesByMatchId(input.matchId, input.phaseId);
       }),
-    
+
     analyze: protectedProcedure
       .input(z.object({
         matchId: z.number(),
@@ -177,9 +179,9 @@ export const appRouter = router({
         if (!match || match.userId !== ctx.user.id) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
         }
-        
+
         const samples = await getTTDSamplesByMatchId(input.matchId, input.phaseId);
-        
+
         if (samples.length === 0) {
           return {
             p50: 0,
@@ -188,12 +190,12 @@ export const appRouter = router({
             count: 0,
           };
         }
-        
+
         const sorted = samples.map(s => s.ttdMs).sort((a, b) => a - b);
         const p50Index = Math.floor(sorted.length * 0.5);
         const p90Index = Math.floor(sorted.length * 0.9);
         const mean = sorted.reduce((a, b) => a + b, 0) / sorted.length;
-        
+
         return {
           p50: sorted[p50Index],
           p90: sorted[p90Index],
@@ -216,7 +218,7 @@ export const appRouter = router({
         }
         return await getVoiceTurnsByMatchId(input.matchId);
       }),
-    
+
     analyze: protectedProcedure
       .input(z.object({
         matchId: z.number(),
@@ -226,9 +228,9 @@ export const appRouter = router({
         if (!match || match.userId !== ctx.user.id) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
         }
-        
+
         const turns = await getVoiceTurnsByMatchId(input.matchId);
-        
+
         if (turns.length === 0) {
           return {
             avgClarity: 0,
@@ -237,12 +239,12 @@ export const appRouter = router({
             totalTurns: 0,
           };
         }
-        
+
         const avgClarity = turns.reduce((sum, t) => sum + (t.clarity || 0), 0) / turns.length;
         const avgInfoDensity = turns.reduce((sum, t) => sum + (t.infoDensity || 0), 0) / turns.length;
         const interruptions = turns.filter(t => t.interruption).length;
         const interruptionRate = interruptions / turns.length;
-        
+
         return {
           avgClarity,
           avgInfoDensity,
@@ -284,7 +286,7 @@ export const appRouter = router({
           ...input,
           createdBy: ctx.user.id,
         });
-        
+
         await createAuditLog({
           userId: ctx.user.id,
           action: "topic_create",
@@ -292,10 +294,10 @@ export const appRouter = router({
           resourceId: topic.id,
           details: { topicId: topic.topicId, topicType: topic.topicType },
         });
-        
+
         return topic;
       }),
-    
+
     list: protectedProcedure
       .input(z.object({
         matchId: z.number().optional(),
@@ -303,7 +305,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return await getActiveTopics(input.matchId);
       }),
-    
+
     get: protectedProcedure
       .input(z.object({
         topicId: z.string(),
@@ -311,7 +313,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return await getTopicByTopicId(input.topicId);
       }),
-    
+
     vote: protectedProcedure
       .input(z.object({
         topicId: z.string(),
@@ -322,15 +324,15 @@ export const appRouter = router({
         if (!topic) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Topic not found' });
         }
-        
+
         if (topic.status !== 'active') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Topic is not active' });
         }
-        
+
         // Create anonymized voter ID (hash of user ID + topic ID)
         const crypto = require('crypto');
         const voterAnonId = crypto.createHash('sha256').update(`${ctx.user.id}-${input.topicId}`).digest('hex');
-        
+
         const betVote = await createBetVote({
           topicId: input.topicId,
           matchId: topic.matchId,
@@ -341,13 +343,13 @@ export const appRouter = router({
           voterAnonId,
           choice: input.choice,
         });
-        
+
         // Award participation points
         await updateUserPoints(ctx.user.id, 1);
-        
+
         return betVote;
       }),
-    
+
     results: protectedProcedure
       .input(z.object({
         topicId: z.string(),
@@ -357,22 +359,22 @@ export const appRouter = router({
         if (!topic) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Topic not found' });
         }
-        
+
         if (topic.status !== 'revealed') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Results not yet revealed' });
         }
-        
+
         const votes = await getBetVotesByTopicId(input.topicId);
-        
+
         const results: Record<string, number> = {};
         topic.options.forEach(opt => results[opt] = 0);
-        
+
         votes.forEach(vote => {
           if (results[vote.choice] !== undefined) {
             results[vote.choice]++;
           }
         });
-        
+
         return {
           topic,
           results,
@@ -401,14 +403,14 @@ export const appRouter = router({
         if (!match || match.userId !== ctx.user.id) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
         }
-        
+
         return await createProcessingTask({
           taskId: input.taskId,
           matchId: input.matchId,
           status: 'pending',
         });
       }),
-    
+
     get: protectedProcedure
       .input(z.object({
         taskId: z.string(),
@@ -418,12 +420,12 @@ export const appRouter = router({
         if (!task) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Task not found' });
         }
-        
+
         const match = await getMatchById(task.matchId);
         if (!match || match.userId !== ctx.user.id) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
         }
-        
+
         return task;
       }),
   }),
@@ -440,11 +442,11 @@ export const appRouter = router({
         if (!match || match.userId !== ctx.user.id) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
         }
-        
+
         const phases = await getPhasesByMatchId(input.matchId);
         const ttdAnalysis = await getTTDSamplesByMatchId(input.matchId);
         const voiceAnalysis = await getVoiceTurnsByMatchId(input.matchId);
-        
+
         const persona = input.persona || 'coach';
         const personaPrompts = {
           coach: "You are an experienced FPS coach. Provide constructive feedback and actionable advice.",
@@ -452,7 +454,7 @@ export const appRouter = router({
           analyst: "You are a data analyst. Focus on statistics and objective observations.",
           casual: "You are a friendly teammate. Keep it casual and supportive.",
         };
-        
+
         const prompt = `${personaPrompts[persona]}
 
 Analyze this FPS match:
@@ -463,16 +465,16 @@ Analyze this FPS match:
 - Voice turns: ${voiceAnalysis.length}
 
 Provide a concise summary (max 200 words) with 3 actionable recommendations.`;
-        
+
         const response = await invokeLLM({
           messages: [
             { role: "system", content: personaPrompts[persona] },
             { role: "user", content: prompt },
           ],
         });
-        
+
         const summary = response.choices[0].message.content;
-        
+
         return {
           summary,
           persona,
@@ -493,7 +495,7 @@ Provide a concise summary (max 200 words) with 3 actionable recommendations.`;
           granted: true,
           grantedAt: new Date(),
         });
-        
+
         await createAuditLog({
           userId: ctx.user.id,
           action: "consent_grant",
@@ -501,10 +503,10 @@ Provide a concise summary (max 200 words) with 3 actionable recommendations.`;
           resourceId: consent.id,
           details: { consentType: input.consentType },
         });
-        
+
         return consent;
       }),
-    
+
     list: protectedProcedure
       .query(async ({ ctx }) => {
         return await getUserConsents(ctx.user.id);

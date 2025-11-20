@@ -39,10 +39,11 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  // Force Lax/Non-Secure for localhost development to ensure cookies are accepted
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    sameSite: "lax",
+    secure: false,
   };
 }

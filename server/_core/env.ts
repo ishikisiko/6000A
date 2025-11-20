@@ -1,11 +1,32 @@
 import path from "node:path";
 
-const resolvedDatabasePath = path.resolve(
-  process.env.DATABASE_URL || "data/app.sqlite"
-);
+const normalizeDatabasePath = (rawPath?: string) => {
+  const fallback = "data/app.sqlite";
+  if (!rawPath) {
+    return path.resolve(fallback);
+  }
+
+  const trimmed = rawPath.trim();
+  const cleanPath = trimmed.replace(/^(sqlite:|file:)/i, "");
+
+  return path.resolve(cleanPath || fallback);
+};
+
+const resolvedDatabasePath = normalizeDatabasePath(process.env.DATABASE_URL);
+
+const resolveAppId = () => {
+  const envAppId = process.env.VITE_APP_ID ?? process.env.APP_ID ?? "";
+  const trimmed = envAppId.trim();
+  if (trimmed.length > 0) return trimmed;
+
+  console.warn(
+    "[Env] VITE_APP_ID not set, defaulting to 'fps-coach-dev' for local auth"
+  );
+  return "fps-coach-dev";
+};
 
 export const ENV = {
-  appId: process.env.VITE_APP_ID ?? "",
+  appId: resolveAppId(),
   cookieSecret: process.env.JWT_SECRET ?? "",
   databaseUrl: resolvedDatabasePath,
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
