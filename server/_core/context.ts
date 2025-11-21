@@ -1,5 +1,6 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
+import { HttpError } from "@shared/_core/errors";
 import { sdk } from "./sdk";
 
 export type TrpcContext = {
@@ -18,7 +19,12 @@ export async function createContext(
     user = await sdk.authenticateRequest(opts.req);
     console.log("[Context] Auth success, user:", user?.id);
   } catch (error) {
-    console.log("[Context] Auth failed:", error);
+    if (error instanceof HttpError && error.statusCode === 403) {
+      // Expected error when user is not logged in
+      // console.log("[Context] User not authenticated");
+    } else {
+      console.log("[Context] Auth failed:", error);
+    }
     // Authentication is optional for public procedures.
     user = null;
   }
