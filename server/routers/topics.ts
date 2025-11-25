@@ -61,8 +61,8 @@ export const topicsRouter = router({
   // Get user points
   myPoints: protectedProcedure
     .query(async ({ ctx }) => {
-      const points = await getUserPoints(ctx.user.id);
-      return { points: points || 0 };
+      const userPointsData = await getUserPoints(ctx.user.id);
+      return { points: userPointsData?.points || 0 };
     }),
 
   // Create new topic (admin only)

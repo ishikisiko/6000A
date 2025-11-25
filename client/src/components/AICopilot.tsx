@@ -1,0 +1,402 @@
+import { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Bot, 
+  Send, 
+  Loader2, 
+  Sparkles, 
+  TrendingUp, 
+  MessageSquare,
+  Trophy,
+  Zap,
+  Brain,
+  Target
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
+import { useLocalAuth } from '@/hooks/useLocalAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useUserPoints } from '@/hooks/useUserPoints';
+import { Link } from 'wouter';
+
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+type BotStatus = 'idle' | 'analyzing' | 'ready' | 'thinking';
+
+interface AICopilotProps {
+  latestMatchId?: number;
+  className?: string;
+}
+
+export function AICopilot({ latestMatchId, className }: AICopilotProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [botStatus, setBotStatus] = useState<BotStatus>('idle');
+  const [winPrediction, setWinPrediction] = useState<number | null>(null);
+  const { points: competitionPoints } = useUserPoints();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { user } = useLocalAuth();
+  const { t } = useLanguage();
+
+  const { data: activeTopics } = trpc.topics.list.useQuery(
+    { status: 'active' },
+    { refetchOnWindowFocus: false, staleTime: 60000 } // Cache for 1 minute
+  );
+  const recentTopics = activeTopics?.slice(0, 3) || [];
+
+  const sendMessageMutation = trpc.chat.sendMessage.useMutation({
+    onSuccess: (data) => {
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
+      setBotStatus('ready');
+    },
+    onError: (error) => {
+      console.error('Failed to send message:', error);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' },
+      ]);
+      setBotStatus('idle');
+    },
+  });
+
+  // Simulate AI analysis on mount
+  useEffect(() => {
+    if (latestMatchId) {
+      setBotStatus('analyzing');
+      const timer = setTimeout(() => {
+        setBotStatus('ready');
+        setWinPrediction(78);
+        setMessages([
+          {
+            role: 'assistant',
+            content: `🎯 Analysis complete! Based on your latest match data, I've identified key improvement areas. Your team collaboration rate is strong at 85%, but TTD could be optimized. Would you like specific recommendations?`
+          }
+        ]);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [latestMatchId]);
+
+  useEffect(() => {
+    // Only auto-scroll when new messages are added
+    if (scrollRef.current && messages.length > 0) {
+      // Use requestAnimationFrame to avoid layout thrashing
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      });
+    }
+  }, [messages.length]); // Only depend on message count, not content
+
+  const handleSend = () => {
+    if (!inputValue.trim() || sendMessageMutation.isPending) return;
+
+    const userMessage: Message = { role: 'user', content: inputValue };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    setBotStatus('thinking');
+
+    sendMessageMutation.mutate({
+      message: userMessage.content,
+      userId: user?.id,
+      history: messages.map(m => ({ role: m.role, content: m.content })),
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const getStatusConfig = () => {
+    switch (botStatus) {
+      case 'analyzing':
+        return {
+          text: 'Analyzing match data...',
+          icon: <Loader2 className="h-4 w-4 animate-spin" />,
+          color: 'text-blue-400'
+        };
+      case 'thinking':
+        return {
+          text: 'Thinking...',
+          icon: <Brain className="h-4 w-4 animate-pulse" />,
+          color: 'text-purple-400'
+        };
+      case 'ready':
+        return {
+          text: 'Ready to assist',
+          icon: <Zap className="h-4 w-4" />,
+          color: 'text-green-400'
+        };
+      default:
+        return {
+          text: 'Standby',
+          icon: <Bot className="h-4 w-4" />,
+          color: 'text-gray-400'
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig();
+
+  return (
+    <Card className={cn(
+      "relative overflow-hidden border-white/10 bg-gradient-to-br from-violet-500/5 to-black/40",
+      "shadow-[0_0_30px_rgba(139,92,246,0.15)]",
+      className
+    )}>
+      {/* Animated Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-violet-500/20 blur-[100px] rounded-full pointer-events-none animate-pulse" />
+      
+      <CardHeader className="relative z-10 pb-4">
+        {/* Competition Points Display */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            {/* AI Avatar - 3D Holographic Effect */}
+            <div className="relative w-14 h-14 group">
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 rounded-2xl animate-[spin_8s_linear_infinite] blur-sm opacity-75" />
+              <div className="absolute inset-0.5 bg-gradient-to-br from-violet-400 via-purple-400 to-blue-400 rounded-2xl flex items-center justify-center">
+                <Sparkles className="h-7 w-7 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
+              </div>
+              {/* Orbiting particles */}
+              <div className="absolute -inset-2">
+                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-violet-400 rounded-full animate-[orbit_3s_linear_infinite] blur-[1px]" />
+                <div className="absolute top-1/2 right-0 w-1 h-1 bg-blue-400 rounded-full animate-[orbit_4s_linear_infinite] blur-[1px]" style={{ animationDelay: '1s' }} />
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-bold bg-gradient-to-r from-violet-300 to-blue-300 bg-clip-text text-transparent">
+                AI Co-Pilot
+              </h3>
+              <div className={cn("flex items-center gap-1.5 text-xs", statusConfig.color)}>
+                {statusConfig.icon}
+                <span>{statusConfig.text}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Competition Points - Game Currency Style */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 blur-xl rounded-full" />
+            <div className="relative bg-gradient-to-br from-amber-500/10 to-yellow-500/10 border border-amber-500/30 rounded-xl px-4 py-2 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+                <div>
+                  <div className="text-[10px] text-amber-300/60 font-medium">Competition Points</div>
+                  <div className="text-xl font-bold bg-gradient-to-r from-amber-300 to-yellow-200 bg-clip-text text-transparent tabular-nums">
+                    {competitionPoints.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Win Prediction Bar */}
+        {winPrediction !== null && (
+          <div className="bg-black/40 rounded-lg p-3 border border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-green-400" />
+                <span className="text-sm font-medium text-green-300">Next Match Win Prediction</span>
+              </div>
+              <span className="text-2xl font-bold bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
+                {winPrediction}%
+              </span>
+            </div>
+            <div className="h-2 bg-black/60 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(34,197,94,0.5)]"
+                style={{ width: `${winPrediction}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </CardHeader>
+
+      <CardContent className="relative z-10 space-y-4">
+        {/* Chat Messages Area */}
+        <div className="bg-black/40 rounded-lg border border-white/5 h-[280px] flex flex-col">
+          <ScrollArea className="flex-1 p-4" type="auto">
+            <div className="space-y-3">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                  <Brain className="h-12 w-12 text-violet-400/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    I'm your AI co-pilot. Ask me anything about your performance!
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "flex gap-2 items-start",
+                      msg.role === 'user' ? "justify-end" : "justify-start"
+                    )}
+                  >
+                    {msg.role === 'assistant' && (
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Sparkles className="h-4 w-4 text-violet-400" />
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        "max-w-[75%] rounded-lg px-3 py-2 text-sm",
+                        msg.role === 'user'
+                          ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white"
+                          : "bg-muted/50 text-foreground border border-white/5"
+                      )}
+                    >
+                      <p className="whitespace-pre-wrap break-words leading-relaxed">
+                        {msg.content}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {sendMessageMutation.isPending && (
+                <div className="flex gap-2 items-start">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500/20 to-blue-500/20 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-violet-400" />
+                  </div>
+                  <div className="bg-muted/50 rounded-lg px-3 py-2 border border-white/5">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+              <div ref={scrollRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Input Area */}
+          <div className="p-3 border-t border-white/5">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ask me anything..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={sendMessageMutation.isPending}
+                className="bg-black/40 border-white/10 focus-visible:ring-violet-500"
+              />
+              <Button 
+                size="icon" 
+                onClick={handleSend} 
+                disabled={sendMessageMutation.isPending || !inputValue.trim()}
+                className="bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="bg-black/40 border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-500/50 text-blue-300"
+            onClick={() => {
+              const message = "Analyze my latest match";
+              setInputValue(message);
+              // Auto-send the message
+              const userMessage: Message = { role: 'user', content: message };
+              setMessages((prev) => [...prev, userMessage]);
+              setBotStatus('thinking');
+              sendMessageMutation.mutate({
+                message: message,
+                userId: user?.id,
+              });
+            }}
+          >
+            <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
+            Analyze Match
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="bg-black/40 border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/50 text-amber-300"
+            asChild
+          >
+            <Link href="/create-topic">
+              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+              Create Topic
+            </Link>
+          </Button>
+        </div>
+
+        {/* Recent Voting Section */}
+        <div className="bg-black/40 rounded-lg border border-white/5 p-3">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-white/90 flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-amber-400" />
+              Recent Voting
+            </h4>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+              <Link href="/topics">View All</Link>
+            </Button>
+          </div>
+          
+          <div className="space-y-2">
+            {recentTopics.length > 0 ? (
+              recentTopics.map((topic) => (
+                <Link key={topic.topicId} href={`/topics/${topic.topicId}`}>
+                  <div className="p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                    <div className="flex items-start gap-2">
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-[10px] px-1.5 py-0.5 mt-0.5",
+                          topic.topicType === 'bet' 
+                            ? "border-amber-500/50 text-amber-400" 
+                            : "border-blue-500/50 text-blue-400"
+                        )}
+                      >
+                        {topic.topicType === 'bet' ? 'BET' : 'VOTE'}
+                      </Badge>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white/90 line-clamp-1 group-hover:text-violet-300 transition-colors">
+                          {topic.title}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                          {topic.options.slice(0, 2).join(' • ')}
+                          {topic.options.length > 2 && ` +${topic.options.length - 2}`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="text-center text-xs text-muted-foreground py-4">
+                No active topics
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+
+      <style>{`
+        @keyframes orbit {
+          from {
+            transform: rotate(0deg) translateX(32px) rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg) translateX(32px) rotate(-360deg);
+          }
+        }
+      `}</style>
+    </Card>
+  );
+}

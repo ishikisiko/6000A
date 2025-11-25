@@ -121,15 +121,62 @@ export function TTDDistributionChart({ samples }: { samples: TTDSample[] }) {
       description={t("analysis.ttdDistributionDesc")}
       empty={samples.length === 0}
     >
-      <ResponsiveContainer width="100%" height={240}>
-        <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="bucket" stroke="rgba(255,255,255,0.5)" />
-          <YAxis stroke="rgba(255,255,255,0.5)" allowDecimals={false} />
-          <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1f2937" }} />
-          <Bar dataKey="count" fill="#34d399" radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="relative">
+        {/* Outer glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-t from-green-500/5 via-transparent to-transparent rounded-lg blur-xl" />
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={chartData}>
+            {/* Radar-style grid lines */}
+            <CartesianGrid strokeDasharray="2 4" stroke="rgba(34, 211, 238, 0.15)" strokeWidth={0.5} />
+            <XAxis 
+              dataKey="bucket" 
+              stroke="rgba(34, 211, 238, 0.5)" 
+              tick={{ fill: 'rgba(34, 211, 238, 0.7)', fontSize: 11 }}
+              axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
+            />
+            <YAxis 
+              stroke="rgba(34, 211, 238, 0.5)" 
+              allowDecimals={false}
+              tick={{ fill: 'rgba(34, 211, 238, 0.7)', fontSize: 11 }}
+              axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                background: "rgba(15, 23, 42, 0.95)", 
+                border: "1px solid rgba(34, 211, 238, 0.3)",
+                borderRadius: '8px',
+                backdropFilter: 'blur(8px)'
+              }} 
+            />
+            {/* Gradient bar with striped pattern */}
+            <defs>
+              <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6ee7b7" stopOpacity={1} />
+                <stop offset="50%" stopColor="#34d399" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0.8} />
+              </linearGradient>
+              <linearGradient id="greenGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+              </linearGradient>
+              <pattern id="stripes" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+                <rect width="2" height="4" fill="rgba(255,255,255,0.1)" />
+              </pattern>
+            </defs>
+            <Bar 
+              dataKey="count" 
+              fill="url(#greenGradient)" 
+              radius={[8, 8, 0, 0]}
+              style={{ filter: 'drop-shadow(0 0 8px rgba(52, 211, 153, 0.4))' }}
+            >
+              {/* Add striped pattern overlay */}
+              {chartData.map((entry, index) => (
+                <rect key={`pattern-${index}`} fill="url(#stripes)" />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </ChartWrapper>
   );
 }
@@ -185,15 +232,62 @@ export function ComboWinRateChart({ combos }: { combos: Combo[] }) {
       description={t("analysis.comboPerformanceDesc")}
       empty={combos.length === 0}
     >
-      <ResponsiveContainer width="100%" height={240}>
-        <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={70} />
-          <YAxis stroke="rgba(255,255,255,0.5)" unit="%" />
-          <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1f2937" }} />
-          <Bar dataKey="winRate" fill="#38bdf8" radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="relative">
+        {/* Outer glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 via-transparent to-transparent rounded-lg blur-xl" />
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={chartData}>
+            {/* Radar-style grid lines */}
+            <CartesianGrid strokeDasharray="2 4" stroke="rgba(34, 211, 238, 0.15)" strokeWidth={0.5} />
+            <XAxis 
+              dataKey="name" 
+              stroke="rgba(34, 211, 238, 0.5)" 
+              tick={{ fill: 'rgba(34, 211, 238, 0.7)', fontSize: 10 }} 
+              interval={0} 
+              angle={-15} 
+              textAnchor="end" 
+              height={70}
+              axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
+            />
+            <YAxis 
+              stroke="rgba(34, 211, 238, 0.5)" 
+              unit="%"
+              tick={{ fill: 'rgba(34, 211, 238, 0.7)', fontSize: 11 }}
+              axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                background: "rgba(15, 23, 42, 0.95)", 
+                border: "1px solid rgba(56, 189, 248, 0.3)",
+                borderRadius: '8px',
+                backdropFilter: 'blur(8px)'
+              }} 
+            />
+            {/* Gradient bar */}
+            <defs>
+              <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7dd3fc" stopOpacity={1} />
+                <stop offset="50%" stopColor="#38bdf8" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.8} />
+              </linearGradient>
+              <pattern id="blueStripes" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+                <rect width="2" height="4" fill="rgba(255,255,255,0.1)" />
+              </pattern>
+            </defs>
+            <Bar 
+              dataKey="winRate" 
+              fill="url(#blueGradient)" 
+              radius={[8, 8, 0, 0]}
+              style={{ filter: 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.4))' }}
+            >
+              {/* Add striped pattern overlay */}
+              {chartData.map((entry, index) => (
+                <rect key={`pattern-${index}`} fill="url(#blueStripes)" />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </ChartWrapper>
   );
 }
@@ -202,12 +296,16 @@ function ChartWrapper({ title, description, empty, children }: ChartWrapperProps
   const { t } = useLanguage();
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="relative overflow-hidden bg-[#1A1B2E] border-white/5">
+      {/* Noise texture overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
+      {/* Top highlight border */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <CardHeader className="relative z-10">
         <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="h-[280px] flex items-center justify-center">
+      <CardContent className="h-[280px] flex items-center justify-center relative z-10">
         {empty ? (
           <p className="text-sm text-muted-foreground">{t("analysis.noData")}</p>
         ) : (

@@ -17,7 +17,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import DiscordSettings from "./pages/DiscordSettings";
 import DashboardPage from "./pages/DashboardPage";
-import { ChatWidget } from "./components/ChatWidget";
+
 
 function Router() {
   return (
@@ -51,7 +51,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
-            <ChatWidget />
+
           </TooltipProvider>
         </ThemeProvider>
       </LanguageProvider>
