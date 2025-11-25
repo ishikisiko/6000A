@@ -12,18 +12,8 @@ export function useLocalAuth() {
   // Use tRPC mutation for login
   const loginMutation = trpc.dev.login.useMutation({
     onSuccess: async (data) => {
-      const name = data.name || 'User';
-
-      // Sync with miniDB for backward compatibility and numeric ID
-      let dbUser = miniDB.getUserByName(name);
-      if (!dbUser) {
-        dbUser = miniDB.createUser(name, 'admin');
-      }
-
-      // Update local state with miniDB user (has numeric ID)
-      const localUser: LocalUser = {
-        ...dbUser,
-      };
+      // Sync with miniDB using server ID
+      const localUser = miniDB.syncUserWithServer(data);
 
       miniDB.setCurrentUser(localUser.id);
       setUser(localUser);
@@ -56,15 +46,8 @@ export function useLocalAuth() {
 
     if (!isMeLoading) {
       if (me) {
-        const name = me.name || 'User';
-        let dbUser = miniDB.getUserByName(name);
-        if (!dbUser) {
-          dbUser = miniDB.createUser(name, 'admin');
-        }
-
-        const localUser: LocalUser = {
-          ...dbUser,
-        };
+        // Sync with miniDB using server ID
+        const localUser = miniDB.syncUserWithServer(me);
 
         setUser(localUser);
         miniDB.setCurrentUser(localUser.id);

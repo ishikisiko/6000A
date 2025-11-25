@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { trpc } from '../lib/trpc';
 import { cn } from '@/lib/utils';
 
@@ -11,11 +11,14 @@ type Message = {
     content: string;
 };
 
+import { useLocalAuth } from '@/hooks/useLocalAuth';
+
 export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
+    const { user } = useLocalAuth();
 
     const sendMessageMutation = trpc.chat.sendMessage.useMutation({
         onSuccess: (data) => {
@@ -45,6 +48,7 @@ export function ChatWidget() {
 
         sendMessageMutation.mutate({
             message: userMessage.content,
+            userId: user?.id,
             history: messages.map(m => ({ role: m.role, content: m.content })),
         });
     };
@@ -69,7 +73,7 @@ export function ChatWidget() {
                     </div>
 
                     {/* Messages */}
-                    <ScrollArea className="flex-1 p-4">
+                    <div className="flex-1 overflow-y-auto p-4">
                         <div className="flex flex-col gap-4">
                             {messages.length === 0 && (
                                 <div className="text-center text-muted-foreground text-sm mt-8">
@@ -98,7 +102,7 @@ export function ChatWidget() {
                             )}
                             <div ref={scrollRef} />
                         </div>
-                    </ScrollArea>
+                    </div>
 
                     {/* Input */}
                     <div className="p-4 border-t mt-auto">

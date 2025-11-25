@@ -116,7 +116,7 @@ class MiniDB {
     };
     users.push(newUser);
     this.setItem('minidb_users', users);
-    
+
     // 记录系统赠送积分
     this.createTransaction({
       userId: newUser.id,
@@ -124,7 +124,7 @@ class MiniDB {
       type: 'system',
       description: '注册奖励',
     });
-    
+
     return newUser;
   }
 
@@ -135,6 +135,60 @@ class MiniDB {
       user.points = points;
       this.setItem('minidb_users', users);
     }
+  }
+
+  // Sync user with server data (prioritize server ID)
+  syncUserWithServer(serverUser: { id: number; name: string | null; role: string }): LocalUser {
+    const users = this.getUsers();
+    const name = serverUser.name || 'User';
+
+    // 1. Try to find by ID first
+    let user = users.find(u => u.id === serverUser.id);
+
+    if (user) {
+      // Update details if needed
+      let changed = false;
+      if (user.name !== name) {
+        user.name = name;
+        changed = true;
+      }
+      if (changed) this.setItem('minidb_users', users);
+      return user;
+    }
+
+    // 2. If not found by ID, try by name
+    user = users.find(u => u.name === name);
+
+    if (user) {
+      // Found by name but ID is different. Update ID to match server.
+      // Note: This might break relationships (votes/topics) that used the old ID.
+      // But since we are moving to unified SQLite, aligning with server ID is preferred.
+      user.id = serverUser.id;
+      this.setItem('minidb_users', users);
+      return user;
+    }
+
+    // 3. Create new user with server ID
+    const newUser: LocalUser = {
+      id: serverUser.id,
+      name: name,
+      role: (serverUser.role as 'admin' | 'user') || 'user',
+      points: 1000,
+      createdAt: new Date().toISOString(),
+      team: 'FMH',
+    };
+    users.push(newUser);
+    this.setItem('minidb_users', users);
+
+    // Record system gift points
+    this.createTransaction({
+      userId: newUser.id,
+      amount: 1000,
+      type: 'system',
+      description: '注册奖励',
+    });
+
+    return newUser;
   }
 
   // Point Transaction operations
@@ -343,7 +397,7 @@ class MiniDB {
       // 创建演示话题
       const now = new Date();
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      
+
       this.createTopic({
         title: '下一场比赛MVP预测',
         description: '预测下一场比赛的MVP玩家',

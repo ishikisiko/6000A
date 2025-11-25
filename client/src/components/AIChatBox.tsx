@@ -217,7 +217,11 @@ export function AIChatBox({
             </div>
           </div>
         ) : (
-          <ScrollArea className="h-full" ref={scrollAreaRef}>
+          <ScrollArea
+            className="h-full [&_[data-slot=scroll-area-thumb]]:bg-border/50"
+            ref={scrollAreaRef}
+            type="scroll"
+          >
             <div className="flex flex-col space-y-4 p-4">
               {displayMessages.map((message, index) => (
                 <div
