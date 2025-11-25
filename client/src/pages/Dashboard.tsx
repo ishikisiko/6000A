@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, BarChart3, MessageSquare, Trophy, Users, Bot, User as UserIcon, Upload, Crosshair } from "lucide-react";
+import { Activity, BarChart3, MessageSquare, Trophy, Users, Bot, User as UserIcon, Upload, Mic } from "lucide-react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { trpc } from "@/lib/trpc";
-
-import { AbilityRadarChart, ActivityLineChart } from "@/components/ActiveTopicsChart";
+import { TTDDistributionChart, ComboWinRateChart, VoiceQualityChart } from "@/components/analytics/MatchAnalysisCharts";
 
 interface DashboardProps {
   userName?: string;
@@ -17,12 +16,34 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
   const { t } = useLanguage();
   const { data: activeTopics, isLoading: isLoadingTopics } = trpc.topics.list.useQuery({ status: 'active' });
   const recentTopics = activeTopics?.slice(0, 2) || [];
-  const statsByUser: Record<string, { totalMatches: number; avgTTD: string; teamCollab: string; avgKD: string }> = {
-    admin: { totalMatches: 24, avgTTD: "0.82s", teamCollab: "73%", avgKD: "1.45" },
-    hzy: { totalMatches: 16, avgTTD: "0.94s", teamCollab: "68%", avgKD: "1.21" },
-  };
-  const normalizedName = userName?.trim().toLowerCase();
-  const personalizedStats = (normalizedName && statsByUser[normalizedName]) || { totalMatches: 0, avgTTD: "--", teamCollab: "--", avgKD: "--" };
+  const { data: matches, isLoading: matchesLoading } = trpc.match.list.useQuery(
+    { limit: 20 },
+    { enabled: Boolean(userName) }
+  );
+  const latestMatchId = matches?.[0]?.id;
+  const { data: ttdStats } = trpc.ttd.analyze.useQuery(
+    { matchId: latestMatchId as number },
+    { enabled: Boolean(latestMatchId) }
+  );
+  const { data: ttdSamples } = trpc.ttd.list.useQuery(
+    { matchId: latestMatchId as number },
+    { enabled: Boolean(latestMatchId) }
+  );
+  const { data: combos } = trpc.collab.list.useQuery(
+    { matchId: latestMatchId as number },
+    { enabled: Boolean(latestMatchId) }
+  );
+  const { data: voiceStats } = trpc.voice.analyze.useQuery(
+    { matchId: latestMatchId as number },
+    { enabled: Boolean(latestMatchId) }
+  );
+
+  const totalMatches = matches?.length ?? 0;
+  const avgTTD = ttdStats?.mean ? `${(ttdStats.mean / 1000).toFixed(2)}s` : "--";
+  const teamCollab = combos && combos.length
+    ? `${Math.round((combos.reduce((sum, c) => sum + (c.winRate ?? 0), 0) / combos.length) * 100)}%`
+    : "--";
+  const voiceClarity = voiceStats?.avgClarity ? voiceStats.avgClarity.toFixed(2) : "--";
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -60,7 +81,9 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">{personalizedStats.totalMatches}</p>
+                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
+                    {matchesLoading ? t('common.loading') : totalMatches}
+                  </p>
                   <p className="text-[10px] text-muted-foreground mt-1">let's continue !</p>
                 </div>
               </div>
@@ -73,7 +96,9 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-cyan-300 to-white bg-clip-text text-transparent">{personalizedStats.avgTTD}</p>
+                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-cyan-300 to-white bg-clip-text text-transparent">
+                    {avgTTD}
+                  </p>
                   <p className="text-[10px] text-muted-foreground mt-1">Decision Time Analysis</p>
                 </div>
               </div>
@@ -86,31 +111,35 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-green-300 to-white bg-clip-text text-transparent">{personalizedStats.teamCollab}</p>
+                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-green-300 to-white bg-clip-text text-transparent">
+                    {teamCollab}
+                  </p>
                   <p className="text-[10px] text-muted-foreground mt-1">Combo Win Rate Stats</p>
                 </div>
               </div>
 
               <div className="p-4 rounded-lg border bg-background/40 backdrop-blur-sm flex flex-col justify-between h-full">
                 <div className="flex justify-between items-start mb-2">
-                  <p className="text-sm text-muted-foreground">Avg K/D</p>
+                  <p className="text-sm text-muted-foreground">{t('matchDetail.voiceQuality')}</p>
                   <div className="p-1.5 bg-red-500/10 rounded-full">
-                    <Crosshair className="h-3 w-3 text-red-500" />
+                    <Mic className="h-3 w-3 text-red-500" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-red-400 to-orange-300 bg-clip-text text-transparent">{personalizedStats.avgKD}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Kill/Death Ratio</p>
+                  <p className="text-3xl font-bold font-gaming bg-gradient-to-b from-red-400 to-orange-300 bg-clip-text text-transparent">
+                    {voiceClarity}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Comm Clarity</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <AbilityRadarChart />
-          <ActivityLineChart />
+          <TTDDistributionChart samples={ttdSamples || []} />
+          <ComboWinRateChart combos={combos || []} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-xl">{t('dashboard.quickStart')}</CardTitle>
@@ -261,6 +290,8 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
               )}
             </CardContent>
           </Card>
+
+          <VoiceQualityChart voice={voiceStats ?? {}} />
         </div>
       </div>
     </div>

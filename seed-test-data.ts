@@ -304,7 +304,7 @@ async function seedTestData() {
   
   try {
     // 确保Admin用户存在
-    const adminOpenId = 'admin-test-data-001';
+    const adminOpenId = 'dev_admin';
     await upsertUser({
       openId: adminOpenId,
       name: 'Admin Test',
