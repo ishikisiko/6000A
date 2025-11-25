@@ -29,6 +29,8 @@ function Router() {
       <Route path={"/analysis/:matchId"} component={Analysis} />
       <Route path={"/topics"} component={Topics} />
       <Route path={"/topic/:topicId"} component={TopicDetail} />
+      {/* Alias for plural topics/id to prevent 404s from AI links */}
+      <Route path={"/topics/:topicId"} component={TopicDetail} />
       <Route path="/create-topic" component={CreateTopic} />
       <Route path="/match-upload" component={MatchUpload} />
       <Route path="/profile" component={Profile} />

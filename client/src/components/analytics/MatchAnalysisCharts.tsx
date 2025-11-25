@@ -236,23 +236,22 @@ export function ComboWinRateChart({ combos }: { combos: Combo[] }) {
         {/* Outer glow effect */}
         <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 via-transparent to-transparent rounded-lg blur-xl" />
         <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={chartData}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
             {/* Radar-style grid lines */}
-            <CartesianGrid strokeDasharray="2 4" stroke="rgba(34, 211, 238, 0.15)" strokeWidth={0.5} />
+            <CartesianGrid strokeDasharray="2 4" stroke="rgba(34, 211, 238, 0.15)" strokeWidth={0.5} horizontal={false} vertical={true} />
             <XAxis 
-              dataKey="name" 
-              stroke="rgba(34, 211, 238, 0.5)" 
-              tick={{ fill: 'rgba(34, 211, 238, 0.7)', fontSize: 10 }} 
-              interval={0} 
-              angle={-15} 
-              textAnchor="end" 
-              height={70}
-              axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
-            />
-            <YAxis 
+              type="number"
               stroke="rgba(34, 211, 238, 0.5)" 
               unit="%"
               tick={{ fill: 'rgba(34, 211, 238, 0.7)', fontSize: 11 }}
+              axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
+            />
+            <YAxis 
+              type="category"
+              dataKey="name" 
+              stroke="rgba(34, 211, 238, 0.5)" 
+              tick={{ fill: 'rgba(34, 211, 238, 0.7)', fontSize: 10 }} 
+              width={110}
               axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
             />
             <Tooltip 
@@ -265,7 +264,7 @@ export function ComboWinRateChart({ combos }: { combos: Combo[] }) {
             />
             {/* Gradient bar */}
             <defs>
-              <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="blueGradient" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#7dd3fc" stopOpacity={1} />
                 <stop offset="50%" stopColor="#38bdf8" stopOpacity={0.9} />
                 <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.8} />
@@ -277,7 +276,8 @@ export function ComboWinRateChart({ combos }: { combos: Combo[] }) {
             <Bar 
               dataKey="winRate" 
               fill="url(#blueGradient)" 
-              radius={[8, 8, 0, 0]}
+              radius={[0, 4, 4, 0]}
+              barSize={24}
               style={{ filter: 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.4))' }}
             >
               {/* Add striped pattern overlay */}

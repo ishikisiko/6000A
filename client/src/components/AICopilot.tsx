@@ -22,6 +22,7 @@ import { useLocalAuth } from '@/hooks/useLocalAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUserPoints } from '@/hooks/useUserPoints';
 import { Link } from 'wouter';
+import { toast } from 'sonner';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -40,12 +41,12 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
   const [inputValue, setInputValue] = useState('');
   const [botStatus, setBotStatus] = useState<BotStatus>('idle');
   const [winPrediction, setWinPrediction] = useState<number | null>(null);
-  const { points: competitionPoints } = useUserPoints();
+  const { points: competitionPoints, refetch: refetchPoints } = useUserPoints();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user } = useLocalAuth();
   const { t } = useLanguage();
 
-  const { data: activeTopics } = trpc.topics.list.useQuery(
+  const { data: activeTopics, isLoading: isTopicsLoading, refetch: refetchTopics } = trpc.topics.list.useQuery(
     { status: 'active' },
     { refetchOnWindowFocus: false, staleTime: 60000 } // Cache for 1 minute
   );
@@ -62,6 +63,22 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
         ...prev,
         { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' },
       ]);
+      setBotStatus('idle');
+    },
+  });
+
+  const revealWinnerMutation = trpc.topics.settle.useMutation({
+    onError: (error) => {
+      console.error('Failed to reveal winner:', error);
+      toast.error(error.message);
+      setBotStatus('idle');
+    },
+  });
+
+  const autoTopicMutation = trpc.chat.sendMessage.useMutation({
+    onError: (error) => {
+      console.error('Failed to auto create topic:', error);
+      toast.error(error.message || t('chat.autoCreateFailed'));
       setBotStatus('idle');
     },
   });
@@ -116,6 +133,85 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
     }
   };
 
+  const handleRevealWinner = async () => {
+    if (!user) {
+      toast.error(t('chat.revealLoginRequired'));
+      return;
+    }
+
+    const availableTopics =
+      activeTopics?.filter(topic => topic.status === 'active' && Array.isArray(topic.options) && topic.options.length > 0) || [];
+
+    if (availableTopics.length === 0) {
+      toast.info(t('chat.noActiveTopics'));
+      return;
+    }
+
+    const topic = availableTopics[Math.floor(Math.random() * availableTopics.length)];
+    const winningChoice = topic.options[Math.floor(Math.random() * topic.options.length)];
+
+    setBotStatus('thinking');
+    try {
+      await revealWinnerMutation.mutateAsync({ topicId: topic.topicId, correctChoice: winningChoice });
+      await refetchTopics();
+      await refetchPoints();
+
+      const revealMessage = t('chat.revealMessage')
+        .replace('{title}', topic.title)
+        .replace('{choice}', winningChoice);
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: revealMessage,
+        },
+      ]);
+      toast.success(t('chat.revealSuccess'));
+      setBotStatus('ready');
+    } catch (error: any) {
+      const message = error?.message || t('chat.revealFailed');
+      toast.error(message);
+      setBotStatus('idle');
+    }
+  };
+
+  const handleAutoCreateTopic = async () => {
+    if (!user) {
+      toast.error(t('chat.revealLoginRequired'));
+      return;
+    }
+
+    setBotStatus('thinking');
+    const prompt = `Create a concise betting or voting topic based on recent matches and points context. Use the tool JSON schema to call create_topic directly with 2-4 clear options and revealInHours of 24. Keep the title short and relevant to FPS performance.`;
+
+    try {
+      const response = await autoTopicMutation.mutateAsync({
+        message: prompt,
+        userId: user.id,
+        history: [],
+      });
+
+      await refetchTopics();
+      await refetchPoints();
+
+      const autoMessage = response.reply || t('chat.autoCreateSuccess');
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: autoMessage,
+        },
+      ]);
+      toast.success(t('chat.autoCreateSuccess'));
+      setBotStatus('ready');
+    } catch (error: any) {
+      const message = error?.message || t('chat.autoCreateFailed');
+      toast.error(message);
+      setBotStatus('idle');
+    }
+  };
+
   const getStatusConfig = () => {
     switch (botStatus) {
       case 'analyzing':
@@ -151,6 +247,7 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
     <Card className={cn(
       "relative overflow-hidden border-white/10 bg-gradient-to-br from-violet-500/5 to-black/40",
       "shadow-[0_0_30px_rgba(139,92,246,0.15)]",
+      "h-full lg:min-h-[900px]",
       className
     )}>
       {/* Animated Background Glow */}
@@ -225,9 +322,9 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
 
       <CardContent className="relative z-10 space-y-4">
         {/* Chat Messages Area */}
-        <div className="bg-black/40 rounded-lg border border-white/5 h-[280px] flex flex-col">
-          <ScrollArea className="flex-1 p-4" type="auto">
-            <div className="space-y-3">
+        <div className="bg-black/40 rounded-lg border border-white/5 min-h-[320px] lg:min-h-[420px] flex flex-col overflow-hidden">
+          <ScrollArea className="flex-1 [&_[data-slot=scroll-area-viewport]]:scroll-smooth" type="auto">
+            <div className="space-y-3 p-4">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-8">
                   <Brain className="h-12 w-12 text-violet-400/30 mb-3" />
@@ -333,6 +430,34 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
               <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
               Create Topic
             </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="col-span-2 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 text-emerald-200"
+            onClick={handleRevealWinner}
+            disabled={revealWinnerMutation.isPending || isTopicsLoading}
+          >
+            {revealWinnerMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Trophy className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            {t('topics.revealed')}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="col-span-2 bg-gradient-to-r from-blue-500/15 via-violet-500/10 to-cyan-500/15 border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-500/20 text-blue-100"
+            onClick={handleAutoCreateTopic}
+            disabled={autoTopicMutation.isPending}
+          >
+            {autoTopicMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            {t('chat.autoCreateTopic')}
           </Button>
         </div>
 

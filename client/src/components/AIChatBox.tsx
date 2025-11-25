@@ -125,6 +125,7 @@ export function AIChatBox({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const shouldAutoScrollRef = useRef(true);
 
   // Filter out system messages
   const displayMessages = messages.filter((msg) => msg.role !== "system");
@@ -147,14 +148,36 @@ export function AIChatBox({
     }
   };
 
-  // Auto-scroll when messages change
+  // Monitor scroll position to determine if we should auto-scroll
   useEffect(() => {
-    scrollToBottom();
+    const viewport = scrollAreaRef.current?.querySelector(
+      '[data-radix-scroll-area-viewport]'
+    ) as HTMLDivElement;
+
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      // Check if user is near bottom (within 100px)
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+      shouldAutoScrollRef.current = isAtBottom;
+    };
+
+    viewport.addEventListener('scroll', handleScroll);
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, [displayMessages.length > 0]); // Re-attach when ScrollArea likely mounts
+
+  // Auto-scroll when messages change, only if we're already at the bottom
+  useEffect(() => {
+    if (shouldAutoScrollRef.current) {
+      scrollToBottom();
+    }
   }, [displayMessages]);
 
   // Scroll when loading starts
   useEffect(() => {
     if (isLoading) {
+      shouldAutoScrollRef.current = true;
       scrollToBottom();
     }
   }, [isLoading]);
@@ -168,6 +191,7 @@ export function AIChatBox({
     setInput("");
 
     // Scroll immediately after sending
+    shouldAutoScrollRef.current = true;
     scrollToBottom();
 
     // Keep focus on input
@@ -218,7 +242,7 @@ export function AIChatBox({
           </div>
         ) : (
           <ScrollArea
-            className="h-full [&_[data-slot=scroll-area-thumb]]:bg-border/50"
+            className="h-full [&_[data-slot=scroll-area-thumb]]:bg-border/50 [&_[data-slot=scroll-area-viewport]]:scroll-smooth"
             ref={scrollAreaRef}
             type="scroll"
           >
@@ -252,9 +276,9 @@ export function AIChatBox({
                           <Streamdown>{message.content}</Streamdown>
                         </div>
                       ) : (
-                        <p className="text-sm break-words">
-                          {message.content}
-                        </p>
+                        <div className="prose prose-sm prose-invert max-w-none break-words">
+                          <Streamdown>{message.content}</Streamdown>
+                        </div>
                       )}
                     </div>
 

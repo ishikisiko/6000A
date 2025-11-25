@@ -39,7 +39,7 @@ export const chatRouter = router({
         ).join('\n');
 
         const topicContext = activeTopics.map(t =>
-          `- Topic ${t.topicId}: ${t.title} (${t.status})`
+          `- Topic: ${t.title} (ID: ${t.topicId}, Status: ${t.status}) -> Link: /topic/${t.topicId}`
         ).join('\n');
 
         const pointsContext = userPoints 
@@ -60,7 +60,9 @@ ${topicContext || "No active topics."}
 
 You can answer questions about the user's performance, their points/badges, or help them create new voting topics (bets/votes) for the community.
 
-IMPORTANT: If the user asks to create a topic, vote, or bet, you MUST return a JSON object in the following format (and nothing else):
+IMPORTANT:
+1. If referencing a specific topic, ALWAYS use the link format: /topic/TOPIC_ID (e.g., /topic/${activeTopics[0]?.topicId || '123'}). Do NOT use /topics/TOPIC_ID.
+2. If the user asks to create a topic, vote, or bet, you MUST return a JSON object in the following format (and nothing else):
 \`\`\`json
 {
   "tool": "create_topic",

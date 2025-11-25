@@ -192,3 +192,4 @@ test-results.xml
 
 sqlite_data/db.sqlite-shm
 sqlite_data/db.sqlite-wal
+GEMINI.md

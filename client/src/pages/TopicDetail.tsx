@@ -14,9 +14,11 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 
 export default function TopicDetail() {
-  const [, params] = useRoute("/topic/:topicId");
+  const [, paramsSingular] = useRoute("/topic/:topicId");
+  const [, paramsPlural] = useRoute("/topics/:topicId");
   const [, setLocation] = useLocation();
-  const topicId = params?.topicId || "";
+  
+  const topicId = paramsSingular?.topicId || paramsPlural?.topicId || "";
 
   const { user } = useLocalAuth();
   

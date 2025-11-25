@@ -34,14 +34,20 @@ export const appRouter = router({
 
   auth: router({
     me: publicProcedure.query(async ({ ctx }) => {
-      if (ctx.user) {
-        // Ensure user has points record, grant 1000 initial points if new
-        const points = await getUserPoints(ctx.user.id);
-        if (!points) {
-          await updateUserPoints(ctx.user.id, 1000);
-        }
+      if (!ctx.user) {
+        return null;
       }
-      return ctx.user;
+      
+      // Ensure user has points record, grant 1000 initial points if new
+      const userPointsData = await getUserPoints(ctx.user.id);
+      if (!userPointsData) {
+        await updateUserPoints(ctx.user.id, 1000);
+      }
+
+      return {
+        ...ctx.user,
+        points: userPointsData?.points ?? 1000, // Attach points to the user object
+      };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);

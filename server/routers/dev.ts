@@ -31,6 +31,9 @@ export const devRouter = router({
             if (!user) {
                 throw new Error("Failed to create user");
             }
+            
+            // Fetch user points
+            const userPointsData = await getUserPoints(user.id);
 
             // Create session
             const sessionToken = await sdk.createSessionToken(openId, {
@@ -42,6 +45,9 @@ export const devRouter = router({
             console.log("[Login] Setting cookie with options:", cookieOptions);
             ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
 
-            return user;
+            return {
+                ...user,
+                points: userPointsData?.points ?? 1000, // Attach points to the user object
+            };
         }),
 });

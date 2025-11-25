@@ -7,7 +7,7 @@ export interface LocalUser {
   id: number;
   name: string;
   role: 'admin' | 'user';
-  points: number;
+  points?: number; // Make points optional as the server might not always provide it
   createdAt: string;
   team?: string;
 }
@@ -138,7 +138,7 @@ class MiniDB {
   }
 
   // Sync user with server data (prioritize server ID)
-  syncUserWithServer(serverUser: { id: number; name: string | null; role: string }): LocalUser {
+  syncUserWithServer(serverUser: { id: number; name: string | null; role: string; points?: number }): LocalUser {
     const users = this.getUsers();
     const name = serverUser.name || 'User';
 
@@ -152,6 +152,11 @@ class MiniDB {
         user.name = name;
         changed = true;
       }
+      // Update points from server if provided
+      if (serverUser.points !== undefined && user.points !== serverUser.points) {
+        user.points = serverUser.points;
+        changed = true;
+      }
       if (changed) this.setItem('minidb_users', users);
       return user;
     }
@@ -161,9 +166,11 @@ class MiniDB {
 
     if (user) {
       // Found by name but ID is different. Update ID to match server.
-      // Note: This might break relationships (votes/topics) that used the old ID.
-      // But since we are moving to unified SQLite, aligning with server ID is preferred.
+      // And update points from server if provided
       user.id = serverUser.id;
+      if (serverUser.points !== undefined) {
+        user.points = serverUser.points;
+      }
       this.setItem('minidb_users', users);
       return user;
     }
@@ -173,20 +180,22 @@ class MiniDB {
       id: serverUser.id,
       name: name,
       role: (serverUser.role as 'admin' | 'user') || 'user',
-      points: 1000,
+      points: serverUser.points !== undefined ? serverUser.points : 1000, // Use server points or default
       createdAt: new Date().toISOString(),
       team: 'FMH',
     };
     users.push(newUser);
     this.setItem('minidb_users', users);
 
-    // Record system gift points
-    this.createTransaction({
-      userId: newUser.id,
-      amount: 1000,
-      type: 'system',
-      description: '注册奖励',
-    });
+    // Record system gift points if not provided by server
+    if (serverUser.points === undefined) {
+      this.createTransaction({
+        userId: newUser.id,
+        amount: 1000,
+        type: 'system',
+        description: '注册奖励',
+      });
+    }
 
     return newUser;
   }

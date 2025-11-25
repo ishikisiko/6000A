@@ -225,6 +225,14 @@ const translations = {
     'topic.voteSuccess': '投票成功!',
     'topic.betSuccess': '下注成功!',
     'topic.pointsDeducted': '积分已扣除',
+    'chat.revealLoginRequired': '请先登录后再结算结果',
+    'chat.noActiveTopics': '暂无需要结算的话题',
+    'chat.revealMessage': '已为「{title}」揭晓结果：{choice}。竞猜积分已结算。',
+    'chat.revealSuccess': '已揭晓并结算积分',
+    'chat.revealFailed': '揭晓失败',
+    'chat.autoCreateTopic': '自动创建话题',
+    'chat.autoCreateSuccess': '话题已自动创建',
+    'chat.autoCreateFailed': '自动创建话题失败',
     
     // Create Topic
     'createTopic.title': '创建话题',
@@ -593,6 +601,14 @@ const translations = {
     'topic.voteSuccess': 'Vote successful!',
     'topic.betSuccess': 'Bet successful!',
     'topic.pointsDeducted': 'Points deducted',
+    'chat.revealLoginRequired': 'Please log in to reveal results',
+    'chat.noActiveTopics': 'No active topics to settle',
+    'chat.revealMessage': 'Winner revealed for "{title}": {choice}. Points settled.',
+    'chat.revealSuccess': 'Winner revealed and points settled',
+    'chat.revealFailed': 'Reveal failed',
+    'chat.autoCreateTopic': 'Auto Create Topic',
+    'chat.autoCreateSuccess': 'Topic created automatically',
+    'chat.autoCreateFailed': 'Failed to auto-create topic',
     
     // Create Topic
     'createTopic.title': 'Create Topic',
