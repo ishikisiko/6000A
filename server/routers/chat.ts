@@ -178,8 +178,10 @@ If the user is just asking a question, just answer normally in text.
 
             if (data.tool === "create_topic") {
               console.log("[Chat] Creating topic:", data.title);
+              const revealAt = new Date(Date.now() + (data.revealInHours || 24) * 60 * 60 * 1000);
+              const topicId = nanoid();
               const newTopic = await createTopic({
-                topicId: nanoid(),
+                topicId,
                 matchId: recentMatches[0]?.id, // Associate with latest match if available
                 topicType: data.type,
                 title: data.title,
@@ -187,11 +189,19 @@ If the user is just asking a question, just answer normally in text.
                 options: data.options,
                 createdBy: input.userId,
                 status: 'active',
-                revealAt: new Date(Date.now() + (data.revealInHours || 24) * 60 * 60 * 1000),
+                revealAt,
               });
 
               return {
-                reply: `✅ Created new ${data.type}: "${data.title}" with options: ${data.options.join(", ")}`
+                reply: `✅ Created new ${data.type}: "${data.title}" with options: ${data.options.join(", ")}`,
+                createdTopic: {
+                  topicId,
+                  title: data.title,
+                  description: data.description || "",
+                  topicType: data.type as "bet" | "vote",
+                  options: data.options,
+                  revealAt: revealAt.toISOString(),
+                },
               };
             }
           } catch (e) {

@@ -1,4 +1,4 @@
-# FPS Coach AI
+# HIVEAI
 
 一个基于 AI 的 FPS 游戏教练应用，提供游戏分析、训练建议和社区功能。
 

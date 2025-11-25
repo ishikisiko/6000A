@@ -23,7 +23,7 @@ import { trpc } from '@/lib/trpc';
 import { useLocalAuth } from '@/hooks/useLocalAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUserPoints } from '@/hooks/useUserPoints';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import {
   RevealDialog,
@@ -33,6 +33,7 @@ import {
 import { RevealCard } from '@/components/RevealCard';
 import { RevealResult } from '@/components/RevealResult';
 import { SecretMissionCard } from '@/components/SecretMissionCard';
+import { TopicCreatedDialog } from '@/components/TopicCreatedDialog';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -85,6 +86,7 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user } = useLocalAuth();
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
 
   // 揭晓弹窗状态
   const [revealState, setRevealState] = useState<RevealState>({
@@ -103,6 +105,23 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
     rewardPoints: 10,
     outcomeOptions: ["Mission Completed", "Mission Failed"],
     isFlipped: false,
+  });
+  
+  // 话题创建成功弹窗状态
+  const [createdTopicState, setCreatedTopicState] = useState<{
+    isOpen: boolean;
+    topic: {
+      topicId: string;
+      title: string;
+      description?: string;
+      topicType: "bet" | "vote" | "mission";
+      options: string[];
+      revealAt?: string;
+      rewardPoints?: number;
+    } | null;
+  }>({
+    isOpen: false,
+    topic: null,
   });
 
   const { data: activeTopics, isLoading: isTopicsLoading, refetch: refetchTopics } = trpc.topics.list.useQuery(
@@ -436,7 +455,24 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
           content: autoMessage,
         },
       ]);
-      toast.success(t('chat.autoCreateSuccess'));
+      
+      // 如果返回了创建的话题数据，显示 TopicCreatedDialog
+      if ((response as any)?.createdTopic) {
+        const createdTopic = (response as any).createdTopic;
+        setCreatedTopicState({
+          isOpen: true,
+          topic: {
+            topicId: createdTopic.topicId,
+            title: createdTopic.title,
+            description: createdTopic.description,
+            topicType: createdTopic.topicType,
+            options: createdTopic.options,
+            revealAt: createdTopic.revealAt,
+          },
+        });
+      } else {
+        toast.success(t('chat.autoCreateSuccess'));
+      }
       setBotStatus('ready');
     } catch (error: any) {
       const message = error?.message || t('chat.autoCreateFailed');
@@ -882,6 +918,16 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
         topicType={revealState.topic?.topicType}
         onClose={handleCloseResult}
         autoCloseDelay={5000}
+      />
+
+      {/* 话题创建成功提示框 */}
+      <TopicCreatedDialog
+        open={createdTopicState.isOpen}
+        onOpenChange={(open) => setCreatedTopicState(prev => ({ ...prev, isOpen: open }))}
+        topic={createdTopicState.topic}
+        onViewTopic={createdTopicState.topic ? () => {
+          setLocation(`/topic/${createdTopicState.topic!.topicId}`);
+        } : undefined}
       />
 
       <style>{`
