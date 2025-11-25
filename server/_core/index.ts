@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import path from "path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -32,6 +33,11 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  
+  // Serve static Image directory for user avatars
+  const imagePath = path.resolve(import.meta.dirname, "../..", "Image");
+  app.use("/Image", express.static(imagePath));
+  
   // tRPC API
   app.use(
     "/api/trpc",

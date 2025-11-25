@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { TeamThemeProvider } from "./contexts/TeamThemeContext";
 import Home from "./pages/Home";
 import MatchDetail from "./pages/MatchDetail";
 import Matches from "./pages/Matches";
@@ -17,6 +18,8 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import DiscordSettings from "./pages/DiscordSettings";
 import DashboardPage from "./pages/DashboardPage";
+import Teams from "./pages/Teams";
+import TeamDetail from "./pages/TeamDetail";
 
 
 function Router() {
@@ -36,6 +39,8 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path={"/settings"} component={Settings} />
       <Route path={"/discord-settings"} component={DiscordSettings} />
+      <Route path="/teams" component={Teams} />
+      <Route path="/teams/:teamId" component={TeamDetail} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -50,11 +55,12 @@ function App() {
           defaultTheme="dark"
         // switchable
         >
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-
-          </TooltipProvider>
+          <TeamThemeProvider defaultTheme="deepBlue">
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </TeamThemeProvider>
         </ThemeProvider>
       </LanguageProvider>
     </ErrorBoundary>

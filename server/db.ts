@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, inArray } from "drizzle-orm";
 import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import Database from "better-sqlite3";
@@ -45,6 +45,12 @@ import {
   processingTasks,
   ProcessingTask,
   InsertProcessingTask,
+  teams,
+  Team,
+  InsertTeam,
+  teamMembers,
+  TeamMember,
+  InsertTeamMember,
 } from "../drizzle/schema";
 import * as schema from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -123,7 +129,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
     const updateSet: Record<string, unknown> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
+    const textFields = ["name", "email", "loginMethod", "avatar"] as const;
     type TextField = (typeof textFields)[number];
 
     const assignNullable = (field: TextField) => {
@@ -541,4 +547,173 @@ export async function getExpiredDataRetentions(): Promise<DataRetention[]> {
       eq(dataRetention.frozen, false)
     )
   );
+}
+
+// ============================================
+// Team operations
+// ============================================
+
+export async function createTeam(team: InsertTeam): Promise<Team> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [inserted] = await db.insert(teams).values(team).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert team");
+  }
+  return inserted;
+}
+
+export async function getTeamById(id: number): Promise<Team | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(teams).where(eq(teams.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getTeamByTeamId(teamId: string): Promise<Team | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(teams).where(eq(teams.teamId, teamId)).limit(1);
+  return result[0];
+}
+
+export async function getTeamByInviteCode(inviteCode: string): Promise<Team | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(teams).where(eq(teams.inviteCode, inviteCode)).limit(1);
+  return result[0];
+}
+
+export async function getTeamsByUserId(userId: number): Promise<(Team & { memberRole: string })[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const memberships = await db.select().from(teamMembers).where(eq(teamMembers.userId, userId));
+  const teamIds = memberships.map(m => m.teamId);
+
+  if (teamIds.length === 0) return [];
+
+  // 使用 inArray 正确查询多个团队
+  const teamsData = await db.select().from(teams).where(inArray(teams.id, teamIds));
+
+  // 将团队数据与成员角色关联
+  const teamsResult: (Team & { memberRole: string })[] = [];
+  for (const membership of memberships) {
+    const team = teamsData.find(t => t.id === membership.teamId);
+    if (team) {
+      teamsResult.push({ ...team, memberRole: membership.role });
+    }
+  }
+
+  return teamsResult;
+}
+
+export async function getAllTeams(limit: number = 50): Promise<Team[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select().from(teams).orderBy(desc(teams.createdAt)).limit(limit);
+}
+
+export async function updateTeam(id: number, updates: Partial<InsertTeam>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(teams).set(updates).where(eq(teams.id, id));
+}
+
+export async function deleteTeam(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Delete all members first
+  await db.delete(teamMembers).where(eq(teamMembers.teamId, id));
+  // Then delete the team
+  await db.delete(teams).where(eq(teams.id, id));
+}
+
+// ============================================
+// Team Member operations
+// ============================================
+
+export async function addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [inserted] = await db.insert(teamMembers).values(member).returning();
+  if (!inserted) {
+    throw new Error("Failed to insert team member");
+  }
+  return inserted;
+}
+
+export async function getTeamMembers(teamId: number): Promise<TeamMember[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select().from(teamMembers).where(eq(teamMembers.teamId, teamId)).orderBy(asc(teamMembers.joinedAt));
+}
+
+export async function getTeamMembersWithUsers(teamId: number): Promise<(TeamMember & { user: { id: number; name: string | null; email: string | null; avatar: string | null } })[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const members = await db.select().from(teamMembers).where(eq(teamMembers.teamId, teamId));
+  const result: (TeamMember & { user: { id: number; name: string | null; email: string | null; avatar: string | null } })[] = [];
+
+  for (const member of members) {
+    const [user] = await db.select({ id: users.id, name: users.name, email: users.email, avatar: users.avatar }).from(users).where(eq(users.id, member.userId)).limit(1);
+    if (user) {
+      result.push({ ...member, user });
+    }
+  }
+
+  return result;
+}
+
+export async function getTeamMember(teamId: number, userId: number): Promise<TeamMember | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(teamMembers).where(
+    and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId))
+  ).limit(1);
+  return result[0];
+}
+
+export async function updateTeamMember(teamId: number, userId: number, updates: Partial<InsertTeamMember>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(teamMembers).set(updates).where(
+    and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId))
+  );
+}
+
+export async function removeTeamMember(teamId: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(teamMembers).where(
+    and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId))
+  );
+}
+
+export async function updateMemberStatus(userId: number, status: "online" | "offline" | "in-game" | "away"): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(teamMembers).set({ status, lastActiveAt: new Date() }).where(eq(teamMembers.userId, userId));
+}
+
+export async function getTeamMemberCount(teamId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const members = await db.select().from(teamMembers).where(eq(teamMembers.teamId, teamId));
+  return members.length;
 }

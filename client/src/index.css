@@ -218,3 +218,163 @@
     }
   }
 }
+
+/* ===== Team Theme System ===== */
+/* Default Team Theme Variables (Deep Blue) */
+:root {
+  --team-primary: #6366f1;
+  --team-primary-hover: #818cf8;
+  --team-primary-foreground: #ffffff;
+  --team-glow: rgba(99, 102, 241, 0.4);
+  --team-glow-hover: rgba(99, 102, 241, 0.6);
+  --team-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --team-gradient-hover: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+  --team-border: rgba(99, 102, 241, 0.3);
+  --team-border-hover: rgba(99, 102, 241, 0.6);
+  --team-text: #818cf8;
+  --team-text-muted: #a5b4fc;
+  --team-badge: rgba(99, 102, 241, 0.2);
+  --team-badge-foreground: #818cf8;
+  --team-icon: #818cf8;
+  --team-icon-muted: #6366f1;
+  --team-card-bg: rgba(99, 102, 241, 0.05);
+  --team-card-border: rgba(99, 102, 241, 0.2);
+  --team-card-hover-border: rgba(99, 102, 241, 0.5);
+  --team-card-hover-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  --team-crown: #fbbf24;
+  --team-crown-bg: rgba(251, 191, 36, 0.2);
+}
+
+/* Team Theme Utility Classes */
+@layer utilities {
+  /* Team Primary Button */
+  .team-btn-primary {
+    background: var(--team-gradient);
+    color: var(--team-primary-foreground);
+    box-shadow: 0 0 12px var(--team-glow);
+    transition: all 0.3s ease;
+  }
+  .team-btn-primary:hover {
+    background: var(--team-gradient-hover);
+    box-shadow: 0 0 20px var(--team-glow-hover);
+    transform: translateY(-1px);
+  }
+
+  /* Team Outline Button */
+  .team-btn-outline {
+    border: 1px solid var(--team-border);
+    color: var(--team-text);
+    background: transparent;
+    transition: all 0.3s ease;
+  }
+  .team-btn-outline:hover {
+    border-color: var(--team-border-hover);
+    box-shadow: 0 0 15px var(--team-glow);
+    background: var(--team-card-bg);
+  }
+
+  /* Team Card */
+  .team-card {
+    background: var(--team-card-bg);
+    border: 1px solid var(--team-card-border);
+    transition: all 0.3s ease;
+  }
+  .team-card:hover {
+    border-color: var(--team-card-hover-border);
+    box-shadow: var(--team-card-hover-shadow);
+  }
+
+  /* Team Badge */
+  .team-badge {
+    background: var(--team-badge);
+    color: var(--team-badge-foreground);
+  }
+
+  /* Team Text */
+  .team-text {
+    color: var(--team-text);
+  }
+  .team-text-muted {
+    color: var(--team-text-muted);
+  }
+
+  /* Team Icon */
+  .team-icon {
+    color: var(--team-icon);
+  }
+  .team-icon-muted {
+    color: var(--team-icon-muted);
+  }
+
+  /* Team Crown (Owner Badge) */
+  .team-crown {
+    color: var(--team-crown);
+    background: var(--team-crown-bg);
+  }
+
+  /* Team Glow Effect */
+  .team-glow {
+    box-shadow: 0 0 15px var(--team-glow);
+  }
+  .team-glow-hover:hover {
+    box-shadow: 0 0 25px var(--team-glow-hover);
+  }
+
+  /* Team Border Glow */
+  .team-border-glow {
+    border-color: var(--team-border-hover);
+    box-shadow: 0 0 10px var(--team-glow);
+  }
+
+  /* Team Tab Active */
+  .team-tab-active {
+    border-bottom: 2px solid var(--team-primary);
+    color: var(--team-text);
+  }
+
+  /* Team Avatar Ring */
+  .team-avatar-ring {
+    box-shadow: 0 0 0 2px var(--team-primary), 0 0 12px var(--team-glow);
+  }
+
+  /* Team Progress Bar */
+  .team-progress {
+    background: var(--team-gradient);
+  }
+
+  /* Team Highlight Number (for stats like win rate) */
+  .team-highlight {
+    color: var(--team-text);
+    text-shadow: 0 0 10px var(--team-glow);
+  }
+
+  /* Team Divider */
+  .team-divider {
+    border-color: var(--team-border);
+  }
+
+  /* Team Input Focus */
+  .team-input:focus {
+    border-color: var(--team-border-hover);
+    box-shadow: 0 0 0 2px var(--team-glow);
+  }
+
+  /* Team Selection Indicator */
+  .team-selected {
+    background: var(--team-badge);
+    border-color: var(--team-border-hover);
+  }
+
+  /* Animated Gradient Border (for special elements) */
+  .team-animated-border {
+    position: relative;
+    background: linear-gradient(var(--background), var(--background)) padding-box,
+                var(--team-gradient) border-box;
+    border: 2px solid transparent;
+  }
+
+  /* Team Radial Glow Background */
+  .team-radial-glow {
+    background: radial-gradient(circle at 50% 0%, var(--team-glow) 0%, transparent 50%);
+  }
+}

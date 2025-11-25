@@ -6,6 +6,7 @@ import { discordRouter } from "./discord/routes";
 import { topicsRouter } from "./routers/topics";
 import { devRouter } from "./routers/dev";
 import { chatRouter } from "./routers/chat";
+import { teamRouter } from "./routers/team";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import {
@@ -31,6 +32,7 @@ export const appRouter = router({
   topics: topicsRouter,
   dev: devRouter,
   chat: chatRouter,
+  team: teamRouter,
 
   auth: router({
     me: publicProcedure.query(async ({ ctx }) => {

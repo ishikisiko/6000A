@@ -10,6 +10,7 @@ export interface LocalUser {
   points?: number; // Make points optional as the server might not always provide it
   createdAt: string;
   team?: string;
+  avatar?: string | null; // User avatar URL or path
 }
 
 export interface LocalTopic {
@@ -138,7 +139,7 @@ class MiniDB {
   }
 
   // Sync user with server data (prioritize server ID)
-  syncUserWithServer(serverUser: { id: number; name: string | null; role: string; points?: number }): LocalUser {
+  syncUserWithServer(serverUser: { id: number; name: string | null; role: string; points?: number; avatar?: string | null }): LocalUser {
     const users = this.getUsers();
     const name = serverUser.name || 'User';
 
@@ -157,6 +158,11 @@ class MiniDB {
         user.points = serverUser.points;
         changed = true;
       }
+      // Update avatar from server if provided
+      if (serverUser.avatar !== undefined && user.avatar !== serverUser.avatar) {
+        user.avatar = serverUser.avatar;
+        changed = true;
+      }
       if (changed) this.setItem('minidb_users', users);
       return user;
     }
@@ -166,10 +172,13 @@ class MiniDB {
 
     if (user) {
       // Found by name but ID is different. Update ID to match server.
-      // And update points from server if provided
+      // And update points and avatar from server if provided
       user.id = serverUser.id;
       if (serverUser.points !== undefined) {
         user.points = serverUser.points;
+      }
+      if (serverUser.avatar !== undefined) {
+        user.avatar = serverUser.avatar;
       }
       this.setItem('minidb_users', users);
       return user;
@@ -183,6 +192,7 @@ class MiniDB {
       points: serverUser.points !== undefined ? serverUser.points : 1000, // Use server points or default
       createdAt: new Date().toISOString(),
       team: 'FMH',
+      avatar: serverUser.avatar,
     };
     users.push(newUser);
     this.setItem('minidb_users', users);

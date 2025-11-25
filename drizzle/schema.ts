@@ -21,6 +21,7 @@ export const users = sqliteTable(
     openId: text("openId").notNull(),
     name: text("name"),
     email: text("email"),
+    avatar: text("avatar"), // User avatar URL or path
     loginMethod: text("loginMethod"),
     role: text("role").$type<"user" | "admin">().default("user").notNull(),
     team: text("team").default("FMH"),
@@ -384,3 +385,63 @@ export const processingTasks = sqliteTable(
 
 export type ProcessingTask = typeof processingTasks.$inferSelect;
 export type InsertProcessingTask = typeof processingTasks.$inferInsert;
+
+/**
+ * Team table - stores team information (5-person CS2/Valorant teams)
+ */
+export const teams = sqliteTable(
+  "teams",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    teamId: text("teamId").notNull(),
+    name: text("name").notNull(),
+    tag: text("tag"), // Short team tag like "FMH", "NaVi"
+    description: text("description"),
+    avatar: text("avatar"), // Avatar URL or base64
+    ownerId: integer("ownerId").notNull(), // Team captain/owner
+    inviteCode: text("inviteCode"), // Unique invite code
+    maxMembers: integer("maxMembers").default(5).notNull(),
+    isPublic: integer("isPublic", { mode: "boolean" }).default(false),
+    settings: text("settings", { mode: "json" }).$type<JsonRecord>(),
+    createdAt: integer("createdAt", { mode: "timestamp" })
+      .default(nowSql())
+      .notNull(),
+    updatedAt: integer("updatedAt", { mode: "timestamp" })
+      .default(nowSql())
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    teamIdIdx: uniqueIndex("teams_teamId_unique").on(table.teamId),
+    inviteCodeIdx: uniqueIndex("teams_inviteCode_unique").on(table.inviteCode),
+  })
+);
+
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+
+/**
+ * Team Member table - stores team membership (many-to-many between users and teams)
+ */
+export const teamMembers = sqliteTable(
+  "teamMembers",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    teamId: integer("teamId").notNull(),
+    userId: integer("userId").notNull(),
+    role: text("role").$type<"owner" | "admin" | "member">().default("member").notNull(),
+    nickname: text("nickname"), // In-game nickname within the team
+    position: text("position"), // e.g., "IGL", "Entry", "AWPer", "Support", "Lurker"
+    status: text("status").$type<"online" | "offline" | "in-game" | "away">().default("offline"),
+    lastActiveAt: integer("lastActiveAt", { mode: "timestamp" }),
+    joinedAt: integer("joinedAt", { mode: "timestamp" })
+      .default(nowSql())
+      .notNull(),
+  },
+  (table) => ({
+    teamUserIdx: uniqueIndex("teamMembers_team_user_unique").on(table.teamId, table.userId),
+  })
+);
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
