@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
 import Anthropic from "@anthropic-ai/sdk";
 import { TRPCError } from "@trpc/server";
-import { getMatchesByUserId, getActiveTopics, createTopic } from "../db";
+import { getMatchesByUserId, getActiveTopics, createTopic, getUserPoints } from "../db";
 import { nanoid } from "nanoid";
 
 // Initialize Anthropic client
@@ -27,11 +27,12 @@ export const chatRouter = router({
       try {
         // 1. Fetch Context Data
         console.log("[Chat] Fetching context data...");
-        const [recentMatches, activeTopics] = await Promise.all([
-          getMatchesByUserId(input.userId, 3),
-          getActiveTopics()
+        const [recentMatches, activeTopics, userPoints] = await Promise.all([
+          getMatchesByUserId(input.userId, 10),
+          getActiveTopics(),
+          getUserPoints(input.userId)
         ]);
-        console.log(`[Chat] Found ${recentMatches.length} matches and ${activeTopics.length} topics.`);
+        console.log(`[Chat] Found ${recentMatches.length} matches, ${activeTopics.length} topics, and ${userPoints?.points ?? 0} points.`);
 
         const matchContext = recentMatches.map(m =>
           `- Match ${m.matchId}: ${m.game} on ${m.map}, Result: ${m.metadata ? JSON.stringify(m.metadata) : 'N/A'}`
@@ -41,16 +42,23 @@ export const chatRouter = router({
           `- Topic ${t.topicId}: ${t.title} (${t.status})`
         ).join('\n');
 
+        const pointsContext = userPoints 
+          ? `Points: ${userPoints.points}\nBadges: ${userPoints.badges?.join(', ') || 'None'}\nStreak: ${userPoints.streak}`
+          : "Points: 0\nBadges: None\nStreak: 0";
+
         const systemPrompt = `You are a helpful FPS coach assistant.
         
 Current User Context:
-Recent Matches:
+User Profile:
+${pointsContext}
+
+Recent Matches (Last 10):
 ${matchContext || "No recent matches found."}
 
 Active Voting Topics:
 ${topicContext || "No active topics."}
 
-You can answer questions about the user's performance or help them create new voting topics (bets/votes) for the community.
+You can answer questions about the user's performance, their points/badges, or help them create new voting topics (bets/votes) for the community.
 
 IMPORTANT: If the user asks to create a topic, vote, or bet, you MUST return a JSON object in the following format (and nothing else):
 \`\`\`json
