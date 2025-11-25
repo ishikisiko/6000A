@@ -226,12 +226,12 @@ async function seedAdminMatches() {
   
   try {
     // 确保Admin用户存在
-    const adminOpenId = 'admin-123';
+    const adminOpenId = 'dev_admin';
     await upsertUser({
       openId: adminOpenId,
       name: 'Admin',
       email: 'admin@example.com',
-      loginMethod: 'system',
+      loginMethod: 'dev',
       role: 'admin',
       team: 'FMH'
     });

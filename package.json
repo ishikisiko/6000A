@@ -126,7 +126,10 @@
       "tailwindcss>nanoid": "3.3.7"
     },
     "onlyBuiltDependencies": [
-      "better-sqlite3"
+      "@discordjs/opus",
+      "@tailwindcss/oxide",
+      "better-sqlite3",
+      "esbuild"
     ]
   }
 }

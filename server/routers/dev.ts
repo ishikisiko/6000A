@@ -11,12 +11,15 @@ export const devRouter = router({
             username: z.string().min(1),
         }))
         .mutation(async ({ input, ctx }) => {
-            const openId = `dev_${input.username}`;
+            const username = input.username.trim();
+            // Use lowercase for the ID to make it case-insensitive
+            const openId = `dev_${username.toLowerCase()}`;
 
             // Create or update user
+            // We keep the original display name (input.username) but use the lowercased ID
             await upsertUser({
                 openId,
-                name: input.username,
+                name: username,
                 email: null,
                 loginMethod: 'dev',
                 lastSignedIn: new Date(),

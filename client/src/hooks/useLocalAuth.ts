@@ -39,6 +39,12 @@ export function useLocalAuth() {
     }
   });
 
+  const logoutMutation = trpc.auth.logout.useMutation({
+    onSuccess: () => {
+      utils.auth.me.setData(undefined, null);
+    },
+  });
+
   // Check for existing session on mount
   const { data: me, isLoading: isMeLoading } = trpc.auth.me.useQuery(undefined, {
     retry: false,
@@ -75,15 +81,14 @@ export function useLocalAuth() {
     return true;
   };
 
-  const logout = () => {
-    // Ideally should call server logout, but for now just clear local state
-    // The server logout is trpc.auth.logout, but we can just clear local state for dev
+  const logout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
     miniDB.logout();
     setUser(null);
-    // Reload to clear httpOnly cookie if possible, or just let it expire
-    // For dev flow, we might want to add a logout mutation call here if strictness is needed
-    // But simply clearing local state is enough to show login screen
-    window.location.reload();
   };
 
   return {

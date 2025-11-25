@@ -16,7 +16,7 @@ async function verifyData() {
   }
   
   // 查询Admin用户
-  const adminUser = await db.select().from(users).where(eq(users.openId, 'admin-123')).limit(1);
+  const adminUser = await db.select().from(users).where(eq(users.openId, 'dev_admin')).limit(1);
   if (!adminUser.length) {
     console.log('❌ 未找到Admin用户');
     return;
