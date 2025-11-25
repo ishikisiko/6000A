@@ -17,7 +17,7 @@ export interface LocalTopic {
   id: number;
   title: string;
   description: string;
-  type: 'vote' | 'bet';
+  type: 'vote' | 'bet' | 'mission';
   options: string[];
   status: 'active' | 'closed' | 'revealed';
   correctAnswer?: number;

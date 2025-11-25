@@ -5,6 +5,34 @@ import { TRPCError } from "@trpc/server";
 import { getMatchesByUserId, getActiveTopics, createTopic, getUserPoints } from "../db";
 import { nanoid } from "nanoid";
 
+const missionOutcomeOptions = ["Mission Completed", "Mission Failed"];
+const secretMissionPool = [
+  {
+    key: "win",
+    title: "Win the next match",
+    detail: "Lead the squad to a clean victory. Keep rotations crisp and economy healthy.",
+    rewardPoints: 10,
+  },
+  {
+    key: "kd",
+    title: "Team Average K/D > 1.4",
+    detail: "Stay disciplined on trades and disengage from low-value duels.",
+    rewardPoints: 10,
+  },
+  {
+    key: "kills",
+    title: "Team total kills > 30",
+    detail: "Hunt as a pack, chain utility, and convert every numbers advantage.",
+    rewardPoints: 10,
+  },
+  {
+    key: "deaths",
+    title: "Team total deaths < 18",
+    detail: "Play off-angles, call early rotations, and value your life every round.",
+    rewardPoints: 10,
+  },
+];
+
 // Initialize Anthropic client
 // Note: Ensure ANTHROPIC_API_KEY is set in your environment variables
 const anthropic = new Anthropic({
@@ -26,17 +54,55 @@ export const chatRouter = router({
       console.log("[Chat] Received message:", input.message);
       try {
         // 1. Fetch Context Data
-        console.log("[Chat] Fetching context data...");
-        const [recentMatches, activeTopics, userPoints] = await Promise.all([
-          getMatchesByUserId(input.userId, 10),
-          getActiveTopics(),
-          getUserPoints(input.userId)
-        ]);
-        console.log(`[Chat] Found ${recentMatches.length} matches, ${activeTopics.length} topics, and ${userPoints?.points ?? 0} points.`);
+      console.log("[Chat] Fetching context data...");
+      const [recentMatches, activeTopics, userPoints] = await Promise.all([
+        getMatchesByUserId(input.userId, 10),
+        getActiveTopics(),
+        getUserPoints(input.userId)
+      ]);
+      console.log(`[Chat] Found ${recentMatches.length} matches, ${activeTopics.length} topics, and ${userPoints?.points ?? 0} points.`);
 
-        const matchContext = recentMatches.map(m =>
-          `- Match ${m.matchId}: ${m.game} on ${m.map}, Result: ${m.metadata ? JSON.stringify(m.metadata) : 'N/A'}`
-        ).join('\n');
+      const trimmedMessage = input.message.trim();
+
+      if (trimmedMessage === "/mission") {
+        console.log("[Chat] Secret mission trigger detected");
+        const mission =
+          secretMissionPool[Math.floor(Math.random() * secretMissionPool.length)];
+
+        const missionTopic = await createTopic({
+          topicId: `mission_${nanoid(8)}`,
+          matchId: recentMatches[0]?.id,
+          topicType: "mission",
+          title: "Secret Mission",
+          description: mission.detail,
+          options: missionOutcomeOptions,
+          status: "active",
+          revealAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
+          createdBy: input.userId,
+          metadata: {
+            missionTitle: mission.title,
+            missionDetail: mission.detail,
+            rewardPoints: mission.rewardPoints,
+            createdFrom: "chat",
+          },
+        });
+
+        return {
+          reply: `🔴 Secret Mission armed: ${mission.title}. Reward +${mission.rewardPoints} pts when completed.`,
+          mission: {
+            topicId: missionTopic.topicId,
+            title: missionTopic.title,
+            missionTitle: mission.title,
+            missionDetail: mission.detail,
+            rewardPoints: mission.rewardPoints,
+            outcomeOptions: missionOutcomeOptions,
+          },
+        };
+      }
+
+      const matchContext = recentMatches.map(m =>
+        `- Match ${m.matchId}: ${m.game} on ${m.map}, Result: ${m.metadata ? JSON.stringify(m.metadata) : 'N/A'}`
+      ).join('\n');
 
         const topicContext = activeTopics.map(t =>
           `- Topic: ${t.title} (ID: ${t.topicId}, Status: ${t.status}) -> Link: /topic/${t.topicId}`

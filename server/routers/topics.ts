@@ -19,7 +19,7 @@ export const topicsRouter = router({
   list: publicProcedure
     .input(z.object({
       status: z.enum(['active', 'closed', 'settled']).optional(),
-      topicType: z.enum(['bet', 'vote']).optional(),
+      topicType: z.enum(['bet', 'vote', 'mission']).optional(),
     }).optional())
     .query(async ({ input }) => {
       if (input?.status) {
@@ -69,7 +69,7 @@ export const topicsRouter = router({
   create: protectedProcedure
     .input(z.object({
       matchId: z.string().optional(),
-      topicType: z.enum(['bet', 'vote']),
+      topicType: z.enum(['bet', 'vote', 'mission']),
       title: z.string().min(1),
       description: z.string().optional(),
       options: z.array(z.string()).min(2),
@@ -210,14 +210,21 @@ export const topicsRouter = router({
       correctChoice: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (ctx.user.role !== 'admin') {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only admins can settle topics' });
-      }
-
       const topic = await getTopicById(input.topicId);
       
       if (!topic) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Topic not found' });
+      }
+
+      const isMission = topic.topicType === 'mission';
+      const isOwner = topic.createdBy === ctx.user.id;
+
+      if (!isMission && ctx.user.role !== 'admin') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only admins can settle topics' });
+      }
+
+      if (isMission && !isOwner && ctx.user.role !== 'admin') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only the mission owner or an admin can settle this mission' });
       }
 
       if (topic.status === 'revealed') {

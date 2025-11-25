@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TrendingUp, Users, Clock, Trophy, Vote, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, Users, Clock, Trophy, Vote, Plus, Trash2, Shield } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +63,10 @@ export default function Topics() {
   const renderTopicCard = (topic: any) => {
     const stats = getTopicStats(topic.topicId);
     const userVote = myVotes?.find(v => v.topicId === topic.topicId);
+    const isMission = topic.topicType === 'mission';
+    const missionMeta = (topic.metadata as any) || {};
+    const missionReward = missionMeta.rewardPoints ?? 10;
+    const missionRewardText = t('topics.missionReward').replace('{points}', missionReward);
     
     return (
       <Card 
@@ -100,13 +104,29 @@ export default function Topics() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-8">
-              <CardTitle className="text-xl mb-2">{topic.title}</CardTitle>
-              <CardDescription>{topic.description}</CardDescription>
+              <CardTitle className="text-xl mb-2">
+                {isMission ? (missionMeta.missionTitle || topic.title) : topic.title}
+              </CardTitle>
+              <CardDescription>
+                {isMission ? (missionMeta.missionDetail || '隐秘任务') : topic.description}
+              </CardDescription>
             </div>
           </div>
           <div className="flex gap-2 mt-3">
-            <Badge variant={topic.topicType === 'bet' ? 'default' : 'secondary'}>
-              {topic.topicType === 'bet' ? t('topics.bet') : t('topics.vote')}
+            <Badge
+              variant={
+                topic.topicType === 'bet'
+                  ? 'default'
+                  : topic.topicType === 'mission'
+                  ? 'destructive'
+                  : 'secondary'
+              }
+            >
+              {topic.topicType === 'bet'
+                ? t('topics.bet')
+                : topic.topicType === 'mission'
+                ? t('topics.mission')
+                : t('topics.vote')}
             </Badge>
             {userVote && (
               <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
@@ -118,15 +138,30 @@ export default function Topics() {
         <CardContent>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {stats.totalVotes} {t('topics.participants')}
-              </span>
-              {topic.topicType === 'bet' && (
-                <span className="flex items-center gap-1">
-                  <Trophy className="h-4 w-4" />
-                  {stats.totalAmount} {t('topic.points')}
-                </span>
+              {isMission ? (
+                <>
+                  <span className="flex items-center gap-1 text-red-500">
+                    <Shield className="h-4 w-4" />
+                    {missionRewardText}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Trophy className="h-4 w-4" />
+                    {t('topics.missionOutcome')}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    {stats.totalVotes} {t('topics.participants')}
+                  </span>
+                  {topic.topicType === 'bet' && (
+                    <span className="flex items-center gap-1">
+                      <Trophy className="h-4 w-4" />
+                      {stats.totalAmount} {t('topic.points')}
+                    </span>
+                  )}
+                </>
               )}
             </div>
             <span className="flex items-center gap-1">

@@ -285,7 +285,7 @@ export const appRouter = router({
       .input(z.object({
         topicId: z.string(),
         matchId: z.number().optional(),
-        topicType: z.enum(['bet', 'vote']),
+        topicType: z.enum(['bet', 'vote', 'mission']),
         title: z.string(),
         description: z.string().optional(),
         options: z.array(z.string()),

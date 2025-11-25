@@ -206,7 +206,7 @@ export const betVotes = sqliteTable("betVotes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   topicId: text("topicId").notNull(),
   matchId: integer("matchId"),
-  topicType: text("topicType").$type<"bet" | "vote">().notNull(),
+  topicType: text("topicType").$type<"bet" | "vote" | "mission">().notNull(),
   title: text("title").notNull(),
   description: text("description"),
   options: text("options", { mode: "json" }).$type<string[]>().notNull(),
@@ -229,14 +229,14 @@ export type InsertBetVote = typeof betVotes.$inferInsert;
 export const topics = sqliteTable(
   "topics",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    topicId: text("topicId").notNull(),
-    matchId: integer("matchId"),
-    topicType: text("topicType").$type<"bet" | "vote">().notNull(),
-    title: text("title").notNull(),
-    description: text("description"),
-    options: text("options", { mode: "json" }).$type<string[]>().notNull(),
-    revealAt: integer("revealAt", { mode: "timestamp" }),
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  topicId: text("topicId").notNull(),
+  matchId: integer("matchId"),
+  topicType: text("topicType").$type<"bet" | "vote" | "mission">().notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  options: text("options", { mode: "json" }).$type<string[]>().notNull(),
+  revealAt: integer("revealAt", { mode: "timestamp" }),
     status: text("status").$type<"active" | "closed" | "revealed">()
       .default("active")
       .notNull(),

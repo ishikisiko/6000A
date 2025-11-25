@@ -189,6 +189,7 @@ const translations = {
     'topics.createFirst': '创建第一个话题开始互动',
     'topics.vote': '投票',
     'topics.bet': '下注',
+    'topics.mission': '隐秘任务',
     'topics.active': '进行中',
     'topics.closed': '已截止',
     'topics.revealed': '已揭晓',
@@ -198,6 +199,8 @@ const translations = {
     'topics.deleteConfirm': '确定要删除这个话题吗?',
     'topics.deleted': '话题已删除',
     'topics.waitForAdmin': '等待管理员创建话题',
+    'topics.missionReward': '完成奖励 +{points} 积分',
+    'topics.missionOutcome': '由创建者结算',
 
     // Topic Detail
     'topic.backToList': '返回话题列表',
@@ -233,6 +236,19 @@ const translations = {
     'chat.autoCreateTopic': '自动创建话题',
     'chat.autoCreateSuccess': '话题已自动创建',
     'chat.autoCreateFailed': '自动创建话题失败',
+    
+    // Reveal Dialog
+    'reveal.letsSeWhoWins': '揭晓时刻！',
+    'reveal.tapToReveal': '点击卡片揭晓结果',
+    'reveal.winner': '获胜选项',
+    'reveal.yourPick': '你的选择',
+    'reveal.participated': '已参与',
+    'reveal.notParticipated': '未参与此话题',
+    'reveal.pointsAtStake': '投注积分',
+    'reveal.youWin': '恭喜获胜！',
+    'reveal.youLose': '很遗憾...',
+    'reveal.tapToContinue': '点击任意处继续',
+    'common.close': '关闭',
     
     // Create Topic
     'createTopic.title': '创建话题',
@@ -693,6 +709,7 @@ const translations = {
     'topics.createFirst': 'Create first topic to start interaction',
     'topics.vote': 'Vote',
     'topics.bet': 'Bet',
+    'topics.mission': 'Secret Mission',
     'topics.active': 'Active',
     'topics.closed': 'Closed',
     'topics.revealed': 'Revealed',
@@ -702,6 +719,8 @@ const translations = {
     'topics.deleteConfirm': 'Are you sure you want to delete this topic?',
     'topics.deleted': 'Topic deleted',
     'topics.waitForAdmin': 'Waiting for admin to create topics',
+    'topics.missionReward': 'Reward +{points} pts',
+    'topics.missionOutcome': 'Settled by creator',
 
     // Topic Detail
     'topic.backToList': 'Back to Topics',
@@ -737,6 +756,19 @@ const translations = {
     'chat.autoCreateTopic': 'Auto Create Topic',
     'chat.autoCreateSuccess': 'Topic created automatically',
     'chat.autoCreateFailed': 'Failed to auto-create topic',
+    
+    // Reveal Dialog
+    'reveal.letsSeWhoWins': "LET'S SEE WHO WINS!",
+    'reveal.tapToReveal': 'Tap the card to reveal',
+    'reveal.winner': 'Winner',
+    'reveal.yourPick': 'Your pick',
+    'reveal.participated': 'Participated',
+    'reveal.notParticipated': "You didn't participate",
+    'reveal.pointsAtStake': 'Points at stake',
+    'reveal.youWin': 'YOU WIN!',
+    'reveal.youLose': 'YOU LOSE',
+    'reveal.tapToContinue': 'Tap anywhere to continue',
+    'common.close': 'Close',
     
     // Create Topic
     'createTopic.title': 'Create Topic',

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Users, Trophy } from "lucide-react";
+import { ArrowLeft, Users, Trophy, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 
@@ -145,6 +145,9 @@ export default function TopicDetail() {
 
   const isActive = topic.status === 'active';
   const isRevealed = topic.status === 'revealed';
+  const isMission = topic.topicType === 'mission';
+  const missionMeta = (topic.metadata as any) || {};
+  const missionReward = missionMeta.rewardPoints ?? 10;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
@@ -157,9 +160,23 @@ export default function TopicDetail() {
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold">{topic.title}</h1>
-              <Badge variant={topic.topicType === 'bet' ? 'default' : 'secondary'}>
-                {topic.topicType === 'bet' ? '🎲 下注' : '📊 投票'}
+              <h1 className="text-3xl font-bold">
+                {isMission ? (missionMeta.missionTitle || topic.title) : topic.title}
+              </h1>
+              <Badge
+                variant={
+                  topic.topicType === 'bet'
+                    ? 'default'
+                    : topic.topicType === 'mission'
+                    ? 'destructive'
+                    : 'secondary'
+                }
+              >
+                {topic.topicType === 'bet'
+                  ? '🎲 下注'
+                  : topic.topicType === 'mission'
+                  ? '🜸 隐秘任务'
+                  : '📊 投票'}
               </Badge>
               <Badge variant={isActive ? 'default' : isRevealed ? 'destructive' : 'outline'}>
                 {isActive ? '进行中' : isRevealed ? '已揭晓' : '已关闭'}
@@ -174,8 +191,38 @@ export default function TopicDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {isMission && (
+              <Card className="bg-red-950/40 border-red-500/30">
+                <CardContent className="p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-red-200">
+                    <Shield className="h-5 w-5" />
+                    <span className="text-sm uppercase tracking-[0.2em]">
+                      Secret Mission
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white">
+                    {missionMeta.missionTitle || 'Mission Briefing'}
+                  </h3>
+                  <p className="text-sm text-red-100/80 leading-relaxed">
+                    {missionMeta.missionDetail || topic.description}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <Badge className="bg-amber-500/20 text-amber-100 border-amber-400/30">
+                      完成奖励 +{missionReward} 积分
+                    </Badge>
+                    <Badge variant="outline" className="border-red-400/50 text-red-200">
+                      失败不扣分
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      完成后由创建者或管理员在揭晓面板中结算
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Participation Form */}
-            {isActive && !userVote && (
+            {isActive && !userVote && !isMission && (
               <Card>
                 <CardHeader>
                   <CardTitle>参与{topic.topicType === 'bet' ? '下注' : '投票'}</CardTitle>
@@ -240,7 +287,7 @@ export default function TopicDetail() {
             )}
 
             {/* Already Voted */}
-            {userVote && (
+            {userVote && !isMission && (
               <Card className="bg-green-500/10 border-green-500/20">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3">
@@ -302,28 +349,47 @@ export default function TopicDetail() {
                 <CardTitle className="text-lg">参与信息</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">总参与人数</p>
-                    <p className="text-xl font-bold">{stats?.totalVotes || 0}</p>
-                  </div>
-                </div>
-                {topic.topicType === 'bet' && (
-                  <div className="flex items-center gap-3">
-                    <Trophy className="h-5 w-5 text-yellow-500" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">总奖池积分</p>
-                      <p className="text-xl font-bold">{stats?.totalPoints || 0}</p>
+                {isMission ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Shield className="h-5 w-5 text-red-400" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">奖励</p>
+                        <p className="text-xl font-bold text-red-200">
+                          +{missionReward} 积分
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {stats?.isAnonymous && (
-                  <div className="p-3 bg-secondary/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      🔒 包含匿名参与者
-                    </p>
-                  </div>
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-100">
+                      由创建者在任务结束后决定完成/失败，失败不扣分。
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Users className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">总参与人数</p>
+                        <p className="text-xl font-bold">{stats?.totalVotes || 0}</p>
+                      </div>
+                    </div>
+                    {topic.topicType === 'bet' && (
+                      <div className="flex items-center gap-3">
+                        <Trophy className="h-5 w-5 text-yellow-500" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">总奖池积分</p>
+                          <p className="text-xl font-bold">{stats?.totalPoints || 0}</p>
+                        </div>
+                      </div>
+                    )}
+                    {stats?.isAnonymous && (
+                      <div className="p-3 bg-secondary/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          🔒 包含匿名参与者
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

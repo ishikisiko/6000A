@@ -14,7 +14,9 @@ import {
   Trophy,
   Zap,
   Brain,
-  Target
+  Target,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -23,6 +25,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useUserPoints } from '@/hooks/useUserPoints';
 import { Link } from 'wouter';
 import { toast } from 'sonner';
+import {
+  RevealDialog,
+  RevealDialogTitle,
+  RevealDialogContent,
+} from '@/components/ui/reveal-dialog';
+import { RevealCard } from '@/components/RevealCard';
+import { RevealResult } from '@/components/RevealResult';
+import { SecretMissionCard } from '@/components/SecretMissionCard';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -30,6 +40,36 @@ type Message = {
 };
 
 type BotStatus = 'idle' | 'analyzing' | 'ready' | 'thinking';
+
+// 揭晓弹窗状态类型
+interface RevealState {
+  isOpen: boolean;
+  topic: {
+    topicId: string;
+    title: string;
+    description?: string;
+    topicType: 'bet' | 'vote' | 'mission';
+    options: string[];
+  } | null;
+  winningChoice: string;
+  userChoice?: string;
+  betAmount?: number;
+  rewardPoints?: number;
+  isCardFlipped: boolean;
+  showResult: boolean;
+  isWinner: boolean;
+  pointsChange?: number;
+}
+
+interface MissionState {
+  isOpen: boolean;
+  topicId?: string;
+  missionTitle: string;
+  missionDetail: string;
+  rewardPoints: number;
+  outcomeOptions: string[];
+  isFlipped: boolean;
+}
 
 interface AICopilotProps {
   latestMatchId?: number;
@@ -46,15 +86,54 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
   const { user } = useLocalAuth();
   const { t } = useLanguage();
 
+  // 揭晓弹窗状态
+  const [revealState, setRevealState] = useState<RevealState>({
+    isOpen: false,
+    topic: null,
+    winningChoice: '',
+    isCardFlipped: false,
+    showResult: false,
+    isWinner: false,
+  });
+  const [missionState, setMissionState] = useState<MissionState>({
+    isOpen: false,
+    topicId: undefined,
+    missionTitle: '',
+    missionDetail: '',
+    rewardPoints: 10,
+    outcomeOptions: ["Mission Completed", "Mission Failed"],
+    isFlipped: false,
+  });
+
   const { data: activeTopics, isLoading: isTopicsLoading, refetch: refetchTopics } = trpc.topics.list.useQuery(
     { status: 'active' },
     { refetchOnWindowFocus: false, staleTime: 60000 } // Cache for 1 minute
   );
+
+  // 获取用户的投票记录
+  const { data: myVotes } = trpc.topics.myVotes.useQuery(undefined, {
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+  });
+
   const recentTopics = activeTopics?.slice(0, 3) || [];
 
   const sendMessageMutation = trpc.chat.sendMessage.useMutation({
     onSuccess: (data) => {
       setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
+      if ((data as any)?.mission) {
+        const missionPayload = (data as any).mission;
+        setMissionState({
+          isOpen: true,
+          topicId: missionPayload.topicId,
+          missionTitle: missionPayload.missionTitle,
+          missionDetail: missionPayload.missionDetail,
+          rewardPoints: missionPayload.rewardPoints ?? 10,
+          outcomeOptions: missionPayload.outcomeOptions || ["Mission Completed", "Mission Failed"],
+          isFlipped: false,
+        });
+        refetchTopics();
+      }
       setBotStatus('ready');
     },
     onError: (error) => {
@@ -72,6 +151,12 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
       console.error('Failed to reveal winner:', error);
       toast.error(error.message);
       setBotStatus('idle');
+    },
+  });
+  const settleMissionMutation = trpc.topics.settle.useMutation({
+    onError: (error) => {
+      console.error('Failed to settle mission:', error);
+      toast.error(error.message);
     },
   });
 
@@ -140,40 +225,188 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
     }
 
     const availableTopics =
-      activeTopics?.filter(topic => topic.status === 'active' && Array.isArray(topic.options) && topic.options.length > 0) || [];
+      activeTopics?.filter(
+        (topic) =>
+          topic.status === "active" &&
+          Array.isArray(topic.options) &&
+          topic.options.length > 0
+      ) || [];
 
     if (availableTopics.length === 0) {
       toast.info(t('chat.noActiveTopics'));
       return;
     }
 
+    // 随机选择一个话题
     const topic = availableTopics[Math.floor(Math.random() * availableTopics.length)];
     const winningChoice = topic.options[Math.floor(Math.random() * topic.options.length)];
 
-    setBotStatus('thinking');
+    // 查找用户在这个话题上的投票
+    const userVote = myVotes?.find((v: any) => v.topicId === topic.topicId);
+    const userChoice = userVote?.choice as string | undefined;
+    const metadata = userVote?.metadata as { points?: number; rewardPoints?: number } | undefined;
+    const betAmount = metadata?.points || 0;
+    const rewardPoints = metadata?.rewardPoints || (topic.topicType === 'mission' ? 10 : undefined);
+    
+    // 计算积分变动
+    let isWinner: boolean;
+    let pointsChange: number | undefined;
+    
+    if (topic.topicType === 'mission') {
+      // Mission 类型：选择成功选项即为获胜
+      isWinner = winningChoice === topic.options[0]; // 第一个选项通常是成功
+      pointsChange = isWinner ? (rewardPoints || 10) : 0;
+    } else {
+      // Bet/Vote 类型
+      isWinner = userChoice === winningChoice;
+      pointsChange = isWinner ? betAmount * 2 : (betAmount > 0 ? -betAmount : 0);
+    }
+
+    // 打开揭晓弹窗
+    setRevealState({
+      isOpen: true,
+      topic: {
+        topicId: topic.topicId,
+        title: topic.title,
+        description: topic.description || undefined,
+        topicType: topic.topicType as 'bet' | 'vote' | 'mission',
+        options: topic.options,
+      },
+      winningChoice,
+      userChoice: topic.topicType === 'mission' ? winningChoice : userChoice,
+      betAmount: betAmount > 0 ? betAmount : undefined,
+      rewardPoints: topic.topicType === 'mission' ? (rewardPoints || 10) : undefined,
+      isCardFlipped: false,
+      showResult: false,
+      isWinner,
+      pointsChange: userChoice || topic.topicType === 'mission' ? pointsChange : undefined,
+    });
+  };
+
+  // 处理卡片翻转
+  const handleCardFlip = async () => {
+    if (!revealState.topic) return;
+
+    setRevealState(prev => ({ ...prev, isCardFlipped: true }));
+
+    // 翻转动画完成后，调用 settle API
+    setTimeout(async () => {
+      try {
+        await revealWinnerMutation.mutateAsync({
+          topicId: revealState.topic!.topicId,
+          correctChoice: revealState.winningChoice,
+        });
+        await refetchTopics();
+        await refetchPoints();
+
+        // 显示结果页面 (用户参与了或者是mission类型)
+        if (revealState.userChoice || revealState.topic!.topicType === 'mission') {
+          setTimeout(() => {
+            setRevealState(prev => ({ ...prev, showResult: true }));
+          }, 1000);
+        }
+
+        const revealMessage = revealState.topic!.topicType === 'mission'
+          ? `🎯 Mission "${revealState.topic!.title}" completed! Outcome: ${revealState.winningChoice}`
+          : t('chat.revealMessage')
+              .replace('{title}', revealState.topic!.title)
+              .replace('{choice}', revealState.winningChoice);
+
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: revealMessage,
+          },
+        ]);
+
+        setBotStatus('ready');
+      } catch (error: any) {
+        const message = error?.message || t('chat.revealFailed');
+        toast.error(message);
+        setBotStatus('idle');
+      }
+    }, 800); // 等待翻转动画
+  };
+
+  const resetMissionState = () => {
+    setMissionState({
+      isOpen: false,
+      topicId: undefined,
+      missionTitle: '',
+      missionDetail: '',
+      rewardPoints: 10,
+      outcomeOptions: ["Mission Completed", "Mission Failed"],
+      isFlipped: false,
+    });
+  };
+
+  const handleMissionFlip = () => {
+    setMissionState((prev) => ({ ...prev, isFlipped: true }));
+  };
+
+  const handleMissionOutcome = async (isSuccess: boolean) => {
+    if (!missionState.topicId) return;
+
+    const choice =
+      missionState.outcomeOptions[isSuccess ? 0 : 1] ||
+      (isSuccess ? "Mission Completed" : "Mission Failed");
+
     try {
-      await revealWinnerMutation.mutateAsync({ topicId: topic.topicId, correctChoice: winningChoice });
+      await settleMissionMutation.mutateAsync({
+        topicId: missionState.topicId,
+        correctChoice: choice,
+      });
       await refetchTopics();
       await refetchPoints();
 
-      const revealMessage = t('chat.revealMessage')
-        .replace('{title}', topic.title)
-        .replace('{choice}', winningChoice);
+      // 关闭任务对话框
+      resetMissionState();
 
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: revealMessage,
+      // 显示 RevealResult 结果页面
+      const pointsChange = isSuccess ? missionState.rewardPoints : 0;
+      setRevealState({
+        isOpen: false,
+        topic: {
+          topicId: missionState.topicId,
+          title: missionState.missionTitle,
+          description: missionState.missionDetail,
+          topicType: 'mission',
+          options: missionState.outcomeOptions,
         },
-      ]);
-      toast.success(t('chat.revealSuccess'));
-      setBotStatus('ready');
+        winningChoice: choice,
+        userChoice: choice,
+        rewardPoints: missionState.rewardPoints,
+        isCardFlipped: true,
+        showResult: true,
+        isWinner: isSuccess,
+        pointsChange,
+      });
     } catch (error: any) {
-      const message = error?.message || t('chat.revealFailed');
+      const message = error?.message || "Failed to settle mission.";
       toast.error(message);
-      setBotStatus('idle');
     }
+  };
+
+  // 关闭揭晓弹窗
+  const handleCloseReveal = () => {
+    setRevealState({
+      isOpen: false,
+      topic: null,
+      winningChoice: '',
+      isCardFlipped: false,
+      showResult: false,
+      isWinner: false,
+    });
+  };
+
+  // 关闭结果展示
+  const handleCloseResult = () => {
+    setRevealState(prev => ({ ...prev, showResult: false }));
+    // 延迟关闭弹窗
+    setTimeout(() => {
+      handleCloseReveal();
+    }, 300);
   };
 
   const handleAutoCreateTopic = async () => {
@@ -483,12 +716,18 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
                         variant="outline" 
                         className={cn(
                           "text-[10px] px-1.5 py-0.5 mt-0.5",
-                          topic.topicType === 'bet' 
-                            ? "border-amber-500/50 text-amber-400" 
+                          topic.topicType === 'bet'
+                            ? "border-amber-500/50 text-amber-400"
+                            : topic.topicType === "mission"
+                            ? "border-red-500/50 text-red-400"
                             : "border-blue-500/50 text-blue-400"
                         )}
                       >
-                        {topic.topicType === 'bet' ? 'BET' : 'VOTE'}
+                        {topic.topicType === 'bet'
+                          ? 'BET'
+                          : topic.topicType === 'mission'
+                          ? 'MISSION'
+                          : 'VOTE'}
                       </Badge>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white/90 line-clamp-1 group-hover:text-violet-300 transition-colors">
@@ -511,6 +750,139 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
           </div>
         </div>
       </CardContent>
+
+      {/* 揭晓弹窗 */}
+      <RevealDialog
+        open={revealState.isOpen && !revealState.showResult}
+        onOpenChange={(open) => {
+          if (!open) handleCloseReveal();
+        }}
+      >
+        <RevealDialogContent>
+          <RevealDialogTitle>
+            {t('reveal.letsSeWhoWins') || "LET'S SEE WHO WINS"}
+          </RevealDialogTitle>
+
+          {revealState.topic && (
+            <div className="mt-4">
+              <RevealCard
+                title={revealState.topic.title}
+                description={revealState.topic.description}
+                topicType={revealState.topic.topicType}
+                options={revealState.topic.options}
+                userChoice={revealState.userChoice}
+                winningChoice={revealState.winningChoice}
+                isFlipped={revealState.isCardFlipped}
+                onFlip={handleCardFlip}
+                betAmount={revealState.betAmount}
+                rewardPoints={revealState.rewardPoints}
+                isFlipping={revealWinnerMutation.isPending}
+              />
+            </div>
+          )}
+
+          {/* 关闭按钮 */}
+          {revealState.isCardFlipped && !revealState.userChoice && (
+            <div className="mt-6 text-center">
+              <Button
+                variant="outline"
+                onClick={handleCloseReveal}
+                className="bg-slate-800/50 border-slate-600/50 hover:bg-slate-700/50"
+              >
+                {t('common.close') || 'Close'}
+              </Button>
+            </div>
+          )}
+        </RevealDialogContent>
+      </RevealDialog>
+
+      {/* Secret Mission Dialog */}
+      <RevealDialog
+        open={missionState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) resetMissionState();
+        }}
+      >
+        <RevealDialogContent className="max-w-xl">
+          {/* 关闭按钮 - 右上角 */}
+          <button
+            onClick={resetMissionState}
+            className="absolute top-3 right-3 p-1.5 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-slate-400 hover:text-white transition-colors z-10"
+            aria-label="Close"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+
+          <RevealDialogTitle>
+            🔴 Secret Mission Briefing
+          </RevealDialogTitle>
+
+          <div className="mt-4">
+            <SecretMissionCard
+              missionTitle={missionState.missionTitle}
+              missionDetail={missionState.missionDetail}
+              rewardPoints={missionState.rewardPoints}
+              isFlipped={missionState.isFlipped}
+              onFlip={handleMissionFlip}
+            />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Flip to reveal the covert objective. Log the outcome after the
+              next match to trigger rewards.
+            </div>
+            {missionState.isFlipped ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => handleMissionOutcome(true)}
+                  disabled={settleMissionMutation.isPending}
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 text-white"
+                >
+                  {settleMissionMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                  )}
+                  Mark Completed
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleMissionOutcome(false)}
+                  disabled={settleMissionMutation.isPending}
+                  className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Mark Failed
+                </Button>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground italic">
+                Flip the mission card to unlock outcome buttons.
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                onClick={resetMissionState}
+                className="text-muted-foreground"
+              >
+                {t('common.close') || 'Close'}
+              </Button>
+            </div>
+          </div>
+        </RevealDialogContent>
+      </RevealDialog>
+
+      {/* 胜负结果全屏展示 */}
+      <RevealResult
+        show={revealState.showResult}
+        isWinner={revealState.isWinner}
+        pointsChange={revealState.pointsChange}
+        topicType={revealState.topic?.topicType}
+        onClose={handleCloseResult}
+        autoCloseDelay={5000}
+      />
 
       <style>{`
         @keyframes orbit {

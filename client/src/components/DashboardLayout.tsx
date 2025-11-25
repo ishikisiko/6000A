@@ -5,6 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +32,7 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { trpc } from "@/lib/trpc";
 
 const menuItems = [
   { icon: LayoutDashboard, labelKey: "nav.dashboard", path: "/dashboard" },
@@ -41,6 +43,13 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
+
+const presenceStatusColors: Record<string, string> = {
+  online: "bg-emerald-500",
+  "in-game": "bg-violet-500",
+  away: "bg-amber-400",
+  offline: "bg-slate-400",
+};
 
 export default function DashboardLayout({
   children,
@@ -235,11 +244,11 @@ function DashboardLayoutContent({
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
+              <SidebarMenu className="px-2 py-1">
+                {menuItems.map(item => {
+                  const isActive = location === item.path;
+                  return (
+                    <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
@@ -255,6 +264,7 @@ function DashboardLayoutContent({
                 );
               })}
             </SidebarMenu>
+            <SidebarTeamPresence isCollapsed={isCollapsed} />
           </SidebarContent>
 
           <SidebarFooter className="p-3">
@@ -326,5 +336,173 @@ function DashboardLayoutContent({
         <main className="flex-1 p-4">{children}</main>
       </SidebarInset>
     </>
+  );
+}
+
+type SidebarTeamPresenceProps = {
+  isCollapsed: boolean;
+};
+
+function SidebarTeamPresence({ isCollapsed }: SidebarTeamPresenceProps) {
+  const { t } = useLanguage();
+  const { data: teams, isLoading: teamsLoading } = trpc.team.list.useQuery();
+
+  const fmhTeam = teams?.find(
+    team =>
+      team.name?.toLowerCase() === "fmh elite" ||
+      team.tag?.toLowerCase() === "fmh"
+  );
+
+  const {
+    data: fmhTeamData,
+    isLoading: teamLoading,
+  } = trpc.team.get.useQuery(
+    { teamId: fmhTeam?.teamId || "" },
+    { enabled: !!fmhTeam?.teamId, refetchInterval: 30000 }
+  );
+
+  const members = fmhTeamData?.members || [];
+  const isLoading = teamsLoading || teamLoading;
+  const onlineCount =
+    members.filter(
+      member => member.status === "online" || member.status === "in-game"
+    ).length || 0;
+
+  if (!isLoading && !fmhTeam) {
+    return null;
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "online":
+        return t("teamStatus.online");
+      case "in-game":
+        return t("teamStatus.inGame");
+      case "away":
+        return t("teamStatus.away");
+      case "offline":
+      default:
+        return t("teamStatus.offline");
+    }
+  };
+
+  return (
+    <div className="px-3 pb-3 pt-1">
+      <div className="rounded-xl border bg-muted/30 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            {!isCollapsed && (
+              <div className="flex flex-col leading-tight">
+                <span className="text-xs font-semibold uppercase tracking-wide">
+                  FMH Elite
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {onlineCount}/{members.length} {t("teamStatus.online")}
+                </span>
+              </div>
+            )}
+          </div>
+          {isCollapsed && (
+            <span className="text-[11px] text-muted-foreground">
+              {onlineCount}/{members.length}
+            </span>
+          )}
+        </div>
+
+        <div
+          className={`mt-3 ${
+            isCollapsed
+              ? "flex flex-col items-center gap-2"
+              : "space-y-2"
+          }`}
+        >
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex w-full items-center gap-3"
+              >
+                <Skeleton className="h-9 w-9 rounded-full" />
+                {!isCollapsed && (
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-2.5 w-16" />
+                  </div>
+                )}
+              </div>
+            ))
+          ) : members.length > 0 ? (
+            members.map(member => (
+              <SidebarMemberRow
+                key={member.id}
+                member={member}
+                isCollapsed={isCollapsed}
+                getStatusLabel={getStatusLabel}
+              />
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t("teamStatus.waitingToJoin")}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type SidebarMemberRowProps = {
+  member: {
+    id: number;
+    status: "online" | "offline" | "in-game" | "away" | null;
+    nickname: string | null;
+    user: { name: string | null; avatar: string | null };
+  };
+  isCollapsed: boolean;
+  getStatusLabel: (status: string) => string;
+};
+
+function SidebarMemberRow({
+  member,
+  isCollapsed,
+  getStatusLabel,
+}: SidebarMemberRowProps) {
+  const status = member.status || "offline";
+  const statusColor =
+    presenceStatusColors[status] || presenceStatusColors.offline;
+  const displayName = member.nickname || member.user.name || "Teammate";
+
+  return (
+    <div className="flex w-full items-center gap-3 rounded-lg">
+      <div className="relative">
+        <Avatar className="h-9 w-9 border border-border">
+          {member.user.avatar && (
+            <AvatarImage
+              src={member.user.avatar}
+              alt={displayName}
+              className="object-cover"
+            />
+          )}
+          <AvatarFallback className="text-xs font-medium">
+            {displayName.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${statusColor}`}
+        />
+      </div>
+      {!isCollapsed && (
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium leading-tight">
+            {displayName}
+          </p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className={`h-2 w-2 rounded-full ${statusColor}`} />
+            <span className="truncate">{getStatusLabel(status)}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

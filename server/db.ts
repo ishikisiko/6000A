@@ -415,8 +415,31 @@ export async function settleTopicResults(topicId: string, correctChoice: string)
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const topic = await getTopicById(topicId);
+  if (!topic) {
+    throw new Error("Topic not found");
+  }
+
   // Update topic status
   await db.update(topics).set({ status: 'revealed' }).where(eq(topics.topicId, topicId));
+
+  // Special handling for secret missions
+  if (topic.topicType === 'mission') {
+    const rewardPoints = Math.max(
+      0,
+      (topic.metadata as any)?.rewardPoints ?? 10
+    );
+    const successKeywords = ['success', 'complete', 'completed'];
+    const isSuccess = successKeywords.some((keyword) =>
+      correctChoice.toLowerCase().includes(keyword)
+    );
+
+    if (isSuccess) {
+      const ownerId = topic.createdBy;
+      await updateUserPoints(ownerId, rewardPoints);
+    }
+    return;
+  }
 
   // Get all votes for this topic
   const votes = await getBetVotesByTopicId(topicId);
