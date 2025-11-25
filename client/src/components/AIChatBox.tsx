@@ -260,8 +260,8 @@ export function AIChatBox({
                       </div>
                     )}
                   </div>
-                );
-              })}
+                )
+              )}
 
               {isLoading && (
                 <div className="flex items-start gap-3">
