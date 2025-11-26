@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, BarChart3, MessageSquare, Trophy, Users, Bot, User as UserIcon, Upload, Mic } from "lucide-react";
@@ -42,6 +43,73 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
     { matchId: latestMatchId as number },
     { enabled: Boolean(latestMatchId), refetchOnWindowFocus: false }
   );
+
+  // Get TTD data for the last 5 matches
+  const last5MatchIds = useMemo(() => matches?.slice(0, 5).map(m => m.id) || [], [matches]);
+  
+  // Query TTD samples for each of the last 5 matches
+  const ttdQueries = trpc.useQueries((t) => 
+    last5MatchIds.map(matchId => 
+      t.ttd.list({ matchId }, { enabled: Boolean(matchId), refetchOnWindowFocus: false })
+    )
+  );
+
+  // Process TTD data for the chart
+  const recentMatchesTTD = useMemo(() => {
+    if (!matches || last5MatchIds.length === 0) return [];
+    
+    return last5MatchIds.map((matchId, idx) => {
+      const match = matches.find(m => m.id === matchId);
+      const samples = ttdQueries[idx]?.data || [];
+      
+      // Group samples by round and calculate average TTD per round
+      const roundMap = new Map<number, number[]>();
+      
+      samples.forEach(sample => {
+        const meta = sample.metadata as Record<string, unknown> | null;
+        const round = meta?.round as number | undefined;
+        if (round && meta?.isRoundTTD) {
+          if (!roundMap.has(round)) {
+            roundMap.set(round, []);
+          }
+          roundMap.get(round)!.push(sample.ttdMs);
+        }
+      });
+      
+      // If no round data, try to create from samples based on time
+      if (roundMap.size === 0 && samples.length > 0) {
+        // Sort by event time and group into "virtual rounds"
+        const sortedSamples = [...samples].sort((a, b) => 
+          new Date(a.eventSrcTs).getTime() - new Date(b.eventSrcTs).getTime()
+        );
+        const samplesPerRound = Math.ceil(sortedSamples.length / 15);
+        sortedSamples.forEach((sample, i) => {
+          const virtualRound = Math.floor(i / samplesPerRound) + 1;
+          if (!roundMap.has(virtualRound)) {
+            roundMap.set(virtualRound, []);
+          }
+          roundMap.get(virtualRound)!.push(sample.ttdMs);
+        });
+      }
+      
+      // Calculate average TTD per round
+      const roundData = Array.from(roundMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([round, ttds]) => ({
+          round,
+          avgTtd: Math.round(ttds.reduce((a, b) => a + b, 0) / ttds.length)
+        }));
+      
+      return {
+        matchId,
+        matchName: `Match ${idx + 1}`,
+        game: match?.game || 'Unknown',
+        map: match?.map || 'Unknown',
+        roundData,
+        color: '' // Will be set in the component
+      };
+    }).filter(m => m.roundData.length > 0);
+  }, [matches, last5MatchIds, ttdQueries]);
 
   const totalMatches = matches?.length ?? 0;
   const avgTTD = ttdStats?.mean ? `${(ttdStats.mean / 1000).toFixed(2)}s` : "--";
@@ -226,7 +294,7 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
             </CardContent>
           </Card>
 
-              <TTDDistributionChart samples={ttdSamples || []} />
+              <TTDDistributionChart samples={ttdSamples || []} recentMatchesTTD={recentMatchesTTD} />
             </div>
 
             {/* Second row: Performance Trend and Combo Win Rate */}

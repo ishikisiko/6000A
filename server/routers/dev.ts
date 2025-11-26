@@ -3,7 +3,7 @@ import { publicProcedure, router } from "../_core/trpc";
 import { sdk } from "../_core/sdk";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "../_core/cookies";
-import { upsertUser, getUserByOpenId } from "../db";
+import { upsertUser, getUserByOpenId, getUserPoints } from "../db";
 
 export const devRouter = router({
     login: publicProcedure
