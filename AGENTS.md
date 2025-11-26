@@ -1,5 +1,5 @@
 # Repository Guidelines
-
+'ARCHITECTURE_DETAILED.md' is the canonical source for architecture and design decisions. This document supplements it with practical guidelines for working in this monorepo. Each time you change the codebase, check if the 'ARCHITECTURE_DETAILED.md' needs update.
 ## Project Structure & Module Organization
 - `client/` is the Vite front end; `src/` holds React/TSX views, `public/` keeps static assets, and `vite.config.ts` points Vite’s root here.  
 - `server/` contains Express, tRPC routers, and the `_core` bootstrap/Env helpers that wire the API to Vite in development.  

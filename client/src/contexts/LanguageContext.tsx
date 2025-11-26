@@ -63,6 +63,16 @@ const translations = {
     'dashboard.personalCenter': '个人中心',
     'dashboard.uploadDemo': '上传比赛Demo',
     'dashboard.features': 'Recent Voting',
+
+    // Welcome Popup
+    'welcome.title': '欢迎回来',
+    'welcome.subtitle': '准备好提升你的游戏水平了吗？您的个性化教练控制台已准备就绪。',
+    'welcome.analysisReady': '分析就绪',
+    'welcome.latestStats': '最新数据已处理',
+    'welcome.aiCoach': 'AI 教练',
+    'welcome.standingBy': '随时待命',
+    'welcome.dismiss': '关闭',
+    'welcome.enter': '进入控制台',
     
     'dashboard.smartPhaseDetection': '智能阶段识别',
     'dashboard.autoDetectTurningPoints': '自动检测比赛中的关键转折点',
@@ -588,6 +598,16 @@ const translations = {
     'dashboard.personalCenter': 'Personal Center',
     'dashboard.uploadDemo': 'Upload Match Demo',
     'dashboard.features': 'Recent Voting',
+
+    // Welcome Popup
+    'welcome.title': 'Welcome Back',
+    'welcome.subtitle': 'Ready to elevate your gameplay? Your personalized coaching dashboard is prepared.',
+    'welcome.analysisReady': 'Analysis Ready',
+    'welcome.latestStats': 'Latest stats processed',
+    'welcome.aiCoach': 'AI Coach',
+    'welcome.standingBy': 'Standing by',
+    'welcome.dismiss': 'Dismiss',
+    'welcome.enter': 'Enter Dashboard',
     
     'dashboard.smartPhaseDetection': 'Smart Phase Detection',
     'dashboard.autoDetectTurningPoints': 'Auto-detect key turning points in matches',

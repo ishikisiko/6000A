@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { TTDDistributionChart, ComboWinRateChart, VoiceQualityChart } from "@/components/analytics/MatchAnalysisCharts";
 import { PerformanceTrendChart } from "@/components/analytics/PerformanceTrendChart";
 import { AICopilot } from "@/components/AICopilot";
+import { WelcomePopup } from "@/components/WelcomePopup";
 
 interface DashboardProps {
   userName?: string;
@@ -120,6 +121,7 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-transparent">
+      <WelcomePopup />
       <div className="container py-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-10">
           <div>
