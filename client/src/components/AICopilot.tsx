@@ -813,6 +813,7 @@ export function AICopilot({ latestMatchId, className }: AICopilotProps) {
                 betAmount={revealState.betAmount}
                 rewardPoints={revealState.rewardPoints}
                 isFlipping={revealWinnerMutation.isPending}
+                isWinner={revealState.isWinner}
               />
             </div>
           )}

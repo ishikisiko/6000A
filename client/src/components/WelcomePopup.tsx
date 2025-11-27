@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { X, Trophy, Target, Zap } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-export function WelcomePopup() {
+interface WelcomePopupProps {
+  onClose?: () => void;
+}
+
+export function WelcomePopup({ onClose }: WelcomePopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useLanguage();
 
@@ -13,6 +17,9 @@ export function WelcomePopup() {
     if (!hasSeenWelcome) {
       setIsOpen(true);
       sessionStorage.setItem("hasSeenWelcome", "true");
+    } else {
+      // If already seen, trigger onClose immediately so parent can animate
+      onClose?.();
     }
   }, []);
 
@@ -21,7 +28,7 @@ export function WelcomePopup() {
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={() => onClose?.()}>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
           {/* Backdrop */}

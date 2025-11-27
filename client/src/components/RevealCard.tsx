@@ -27,6 +27,7 @@ interface RevealCardProps {
   rewardPoints?: number;
   /** 是否正在翻转动画中 */
   isFlipping?: boolean;
+  isWinner?: boolean;
   className?: string;
 }
 
@@ -46,9 +47,10 @@ export function RevealCard({
   betAmount,
   rewardPoints,
   isFlipping,
+  isWinner: isWinnerProp,
   className,
 }: RevealCardProps) {
-  const isWinner = userChoice === winningChoice;
+  const isWinner = isWinnerProp !== undefined ? isWinnerProp : userChoice === winningChoice;
   const hasParticipated = !!userChoice;
 
   return (

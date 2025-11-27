@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { motion, useReducedMotion, Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, BarChart3, MessageSquare, Trophy, Users, Bot, User as UserIcon, Upload, Mic } from "lucide-react";
+import { Activity, MessageSquare, Trophy, Users, Bot, User as UserIcon, Mic } from "lucide-react";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -16,13 +17,174 @@ interface DashboardProps {
   teamName?: string;
 }
 
+const motionTokens = {
+  easeSnappy: [0.2, 0.8, 0.2, 1],
+  easeSoft: [0.16, 1, 0.3, 1],
+  durationFast: 0.35,
+  durationBase: 0.65,
+  durationSlow: 1.05,
+  stagger: 0.08,
+  blur: 14,
+  y: 18,
+  scale: 0.96,
+};
+
+const buildContainerVariants = (prefersReducedMotion: boolean): Variants => ({
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: prefersReducedMotion
+      ? { duration: 0 }
+      : {
+          duration: motionTokens.durationFast,
+          staggerChildren: motionTokens.stagger,
+          delayChildren: 0.15,
+        },
+  },
+});
+
+const buildItemVariants = (prefersReducedMotion: boolean): Variants => ({
+  hidden: {
+    opacity: 0,
+    y: prefersReducedMotion ? 0 : motionTokens.y,
+    scale: prefersReducedMotion ? 1 : motionTokens.scale,
+    filter: prefersReducedMotion ? "blur(0px)" : `blur(${motionTokens.blur}px)`,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    transition: prefersReducedMotion
+      ? { duration: 0 }
+      : {
+          duration: motionTokens.durationBase,
+          ease: motionTokens.easeSnappy,
+        },
+  },
+});
+
+const buildSlowItemVariants = (prefersReducedMotion: boolean): Variants => ({
+  hidden: {
+    opacity: 0,
+    y: prefersReducedMotion ? 0 : motionTokens.y,
+    scale: prefersReducedMotion ? 1 : motionTokens.scale,
+    filter: prefersReducedMotion ? "blur(0px)" : `blur(${motionTokens.blur}px)`,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    transition: prefersReducedMotion
+      ? { duration: 0 }
+      : {
+          duration: motionTokens.durationBase * 1.5,
+          ease: motionTokens.easeSoft,
+        },
+  },
+});
+
+const buildAiPanelVariants = (prefersReducedMotion: boolean): Variants => ({
+  hidden: {
+    opacity: 0,
+    y: prefersReducedMotion ? 0 : motionTokens.y + 6,
+    scale: prefersReducedMotion ? 1 : 0.94,
+    rotateX: prefersReducedMotion ? 0 : -4,
+    filter: prefersReducedMotion ? "blur(0px)" : `blur(${motionTokens.blur}px)`,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    rotateX: 0,
+    filter: "blur(0px)",
+    transition: prefersReducedMotion
+      ? { duration: 0 }
+      : {
+          duration: motionTokens.durationSlow * 1.6,
+          ease: motionTokens.easeSoft,
+          delay: 0.4,
+        },
+  },
+});
+
+const buildHeroVariants = (prefersReducedMotion: boolean): Variants => ({
+  hidden: {
+    opacity: 0,
+    y: prefersReducedMotion ? 0 : 12,
+    scale: prefersReducedMotion ? 1 : 0.98,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: prefersReducedMotion
+      ? { duration: 0 }
+      : {
+          duration: motionTokens.durationBase,
+          ease: motionTokens.easeSoft,
+        },
+  },
+});
+
+const buildAmbientVariants = (prefersReducedMotion: boolean): Variants => ({
+  hidden: { opacity: 0, scale: 0.92, x: -20, y: -10 },
+  visible: {
+    opacity: prefersReducedMotion ? 0.1 : 0.2,
+    scale: 1,
+    x: 0,
+    y: 0,
+    transition: prefersReducedMotion
+      ? { duration: 0 }
+      : { duration: motionTokens.durationSlow, ease: motionTokens.easeSoft },
+  },
+});
+
+const buildSweepVariants = (prefersReducedMotion: boolean): Variants => ({
+  hidden: { x: "-60%", opacity: 0 },
+  visible: {
+    x: "120%",
+    opacity: prefersReducedMotion ? 0 : 0.18,
+    transition: prefersReducedMotion
+      ? { duration: 0 }
+      : { duration: 1.1, ease: motionTokens.easeSoft, delay: 0.15 },
+  },
+});
+
 export default function Dashboard({ userName, teamName }: DashboardProps) {
   const { t } = useLanguage();
-  const { data: activeTopics, isLoading: isLoadingTopics } = trpc.topics.list.useQuery(
-    { status: 'active' },
-    { refetchOnWindowFocus: false }
+  const [showContent, setShowContent] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const containerMotion = useMemo(
+    () => buildContainerVariants(prefersReducedMotion),
+    [prefersReducedMotion]
   );
-  const recentTopics = activeTopics?.slice(0, 2) || [];
+  const itemMotion = useMemo(
+    () => buildItemVariants(prefersReducedMotion),
+    [prefersReducedMotion]
+  );
+  const slowItemMotion = useMemo(
+    () => buildSlowItemVariants(prefersReducedMotion),
+    [prefersReducedMotion]
+  );
+  const aiPanelMotion = useMemo(
+    () => buildAiPanelVariants(prefersReducedMotion),
+    [prefersReducedMotion]
+  );
+  const heroMotion = useMemo(
+    () => buildHeroVariants(prefersReducedMotion),
+    [prefersReducedMotion]
+  );
+  const ambientMotion = useMemo(
+    () => buildAmbientVariants(prefersReducedMotion),
+    [prefersReducedMotion]
+  );
+  const sweepMotion = useMemo(
+    () => buildSweepVariants(prefersReducedMotion),
+    [prefersReducedMotion]
+  );
+
   const { data: matches, isLoading: matchesLoading } = trpc.match.list.useQuery(
     { limit: 20 },
     { enabled: Boolean(userName), refetchOnWindowFocus: false }
@@ -120,21 +282,42 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
   const voiceClarity = voiceStats?.avgClarity ? voiceStats.avgClarity.toFixed(2) : "--";
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <WelcomePopup />
-      <div className="container py-10">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-10">
-          <div>
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+    <div className="relative min-h-screen bg-transparent overflow-hidden">
+      <motion.div
+        className="pointer-events-none absolute -top-24 -left-24 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.16),transparent_55%)] blur-[120px]"
+        variants={ambientMotion}
+        initial="hidden"
+        animate={showContent ? "visible" : "hidden"}
+      />
+      <motion.div
+        className="pointer-events-none absolute -bottom-16 right-0 h-[380px] w-[380px] rounded-full bg-[radial-gradient(circle_at_60%_60%,rgba(168,85,247,0.15),transparent_58%)] blur-[120px]"
+        variants={ambientMotion}
+        initial="hidden"
+        animate={showContent ? "visible" : "hidden"}
+      />
+      <WelcomePopup onClose={() => setShowContent(true)} />
+      <motion.div 
+        className="container py-10"
+        variants={containerMotion}
+        initial="hidden"
+        animate={showContent ? "visible" : "hidden"}
+      >
+        <motion.div variants={heroMotion} className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-10 overflow-hidden rounded-2xl border border-white/5 bg-white/5 px-6 py-5 backdrop-blur">
+          <motion.div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-blue-500/5"
+            variants={sweepMotion}
+          />
+          <div className="relative">
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
               {t('dashboard.welcome')}, {userName || t('dashboard.coach')}
             </h1>
             <p className="text-muted-foreground mt-2 text-lg">
               {t('dashboard.readyForNextMatch')} • Team: <span className="text-primary font-semibold">{teamName}</span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="relative flex items-center gap-3">
             {/* Quick Start Capsule Buttons */}
-            <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 border border-white/10 backdrop-blur-sm">
+            <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 border border-white/10 backdrop-blur-sm shadow-[0_10px_50px_-20px_rgba(59,130,246,0.6)]">
               <Link href="/matches">
                 <Button 
                   variant="ghost" 
@@ -182,14 +365,18 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
               <Link href="/settings">{t('nav.settings')}</Link>
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main layout: 2 columns on left, AI Co-pilot on right */}
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8"
+          variants={containerMotion}
+        >
           {/* Left side: all content */}
-          <div className="space-y-8">
+          <motion.div className="space-y-8" variants={containerMotion}>
             {/* First row: Performance Snapshot and TTD Distribution */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" variants={containerMotion}>
+              <motion.div variants={slowItemMotion} className="h-full">
               <Card className="border-t-4 border-t-primary h-full bg-[#1A1B2E] border-white/5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] relative overflow-hidden">
                 {/* Noise texture overlay */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
@@ -295,24 +482,78 @@ export default function Dashboard({ userName, teamName }: DashboardProps) {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
-              <TTDDistributionChart samples={ttdSamples || []} recentMatchesTTD={recentMatchesTTD} />
-            </div>
+              <motion.div variants={slowItemMotion} className="h-full">
+                <TTDDistributionChart samples={ttdSamples || []} recentMatchesTTD={recentMatchesTTD} />
+              </motion.div>
+            </motion.div>
 
             {/* Second row: Performance Trend and Combo Win Rate */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <PerformanceTrendChart matches={matches || []} />
+            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-8" variants={containerMotion}>
+              <motion.div variants={slowItemMotion}>
+                <PerformanceTrendChart matches={matches || []} />
+              </motion.div>
               
-              <ComboWinRateChart combos={combos || []} />
-            </div>
-          </div>
+              <motion.div variants={slowItemMotion}>
+                <ComboWinRateChart combos={combos || []} />
+              </motion.div>
+            </motion.div>
+          </motion.div>
 
           {/* Right side: AI Co-pilot (full height) */}
-          <div className="lg:row-span-1">
-            <AICopilot latestMatchId={latestMatchId} />
-          </div>
-        </div>
-      </div>
+          <motion.div
+            variants={aiPanelMotion}
+            className="relative lg:row-span-1 h-full overflow-hidden rounded-2xl border border-white/5 bg-black/40 backdrop-blur"
+          >
+            <motion.div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-purple-500/10 via-cyan-500/5 to-blue-500/10"
+              initial={{ opacity: 0, scale: 0.9, rotate: -6 }}
+              animate={
+                showContent
+                  ? { opacity: prefersReducedMotion ? 0.08 : 0.22, scale: 1, rotate: 0 }
+                  : { opacity: 0, scale: 0.9, rotate: -6 }
+              }
+              transition={
+                prefersReducedMotion
+                  ? { duration: 0 }
+                  : { duration: motionTokens.durationSlow * 1.5, ease: motionTokens.easeSoft, delay: 0.5 }
+              }
+            />
+            <motion.div
+              className="pointer-events-none absolute -left-24 top-1/2 h-48 w-48 rounded-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.18),transparent_60%)] blur-[80px]"
+              initial={{ opacity: 0, x: -20 }}
+              animate={
+                showContent
+                  ? { opacity: prefersReducedMotion ? 0.08 : 0.2, x: 0 }
+                  : { opacity: 0, x: -20 }
+              }
+              transition={
+                prefersReducedMotion
+                  ? { duration: 0 }
+                  : { duration: motionTokens.durationSlow * 1.3, ease: motionTokens.easeSoft, delay: 0.55 }
+              }
+            />
+            <motion.div
+              className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white/10 via-white/0 to-transparent"
+              initial={{ x: "40%", opacity: 0 }}
+              animate={
+                showContent
+                  ? { x: "0%", opacity: prefersReducedMotion ? 0.04 : 0.12 }
+                  : { x: "40%", opacity: 0 }
+              }
+              transition={
+                prefersReducedMotion
+                  ? { duration: 0 }
+                  : { duration: motionTokens.durationSlow * 1.2, ease: motionTokens.easeSoft, delay: 0.6 }
+              }
+            />
+            <div className="relative z-10">
+              <AICopilot latestMatchId={latestMatchId} />
+            </div>
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
